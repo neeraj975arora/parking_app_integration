@@ -1,9 +1,10 @@
-# parking_app_integration
-Repo Organization
+# Repo Organization
 
-parking_app_integration/                       #  orchestration repo (parking-app-integration) that:has a GitHub actions workflow like you already built
+This repository `parking_app_integration/` (or `orchestration` repo - `parking-app-integration`) has a GitHub actions workflow already built.
 
-Includes each repo as submodule
+Includes each repo as submodule:
+```
+parking_app_integration/
 ├── user_android_app/              # Android app code
 │   ├── app/
 │   ├── tests/                     # Appium test scripts
@@ -24,6 +25,7 @@ Includes each repo as submodule
 ├── README.md
 └── e2e-artifacts/                # (Optional) Temporary location for storing test results
 
+```
 # Android Emulator Runner: GitHub Action Summary e22.yml
 
 The **Android Emulator Runner** is a GitHub Action that simplifies setting up and running hardware‑accelerated Android emulators on Linux and macOS virtual machines. It is especially useful for CI environments where configuring emulators and virtualization can be complex.
