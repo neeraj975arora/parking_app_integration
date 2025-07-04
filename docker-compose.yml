@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - FLASK_CONFIG=development
+      - DATABASE_URL=postgresql://parking_user:parking_password@db:5432/parking_db
+      - POSTGRES_USER=parking_user
+      - POSTGRES_PASSWORD=parking_password
+      - POSTGRES_DB=parking_db
+      - DB_HOST=db
+      - SECRET_KEY=my-super-secret-key-that-is-not-safe
+    command: gunicorn --bind 0.0.0.0:5000 wsgi:app
+
+  db:
+    image: postgres:17
+    environment:
+      - POSTGRES_DB=parking_db
+      - POSTGRES_USER=parking_user
+      - POSTGRES_PASSWORD=parking_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parking_user -d parking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - "5432:5432"
+
+  nginx:
+    image: nginx:stable
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - backend
+    depends_on:
+      - app
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
