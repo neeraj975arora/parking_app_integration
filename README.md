@@ -11,17 +11,17 @@ We follow a **monorepo strategy** with clearly separated folders for each major 
 
 ```
 parking_app_integration/
-├── user_android_app/           # Android mobile app
+├── vision-parking(user_android_app)/           # Android mobile app
 │   ├── app/
 │   ├── tests/                  # Appium / pytest
 │   └── build.gradle
 
-├── cloud_server/              # FastAPI/Flask backend
+├── Backend(cloud_server)/              # FastAPI/Flask backend
 │   ├── src/
 │   ├── Dockerfile
 │   └── docker-compose.yml
 
-├── parking_detection/         # Optional: ML microservice
+├── Parking-Server(parking_detection system)/         # Optional: ML microservice
 │   ├── models/
 │   └── Dockerfile
 
