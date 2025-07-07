@@ -1,0 +1,529 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Project Setup and Initial Configuration",
+        "description": "Set up the new Android Studio project for the Vision Parking App, configure basic project structure, dependencies (Material Components, etc.), and version control.",
+        "details": "Create a new Android Studio project using Java. Configure `build.gradle` files to include necessary dependencies like Material Components, AppCompat, etc. Initialize a Git repository.\n<info added on 2025-06-26T06:47:04.782Z>\nImplementation Plan:\n- App Name: VisionPark\n- Create a new Android Studio project (Java, min SDK 24+, package: com.yourdomain.visionpark)\n- Configure build.gradle with dependencies: Material Components, AppCompat, ConstraintLayout, etc.\n- Set up standard Android project structure: activities, fragments, adapters, models, utils, etc.\n- Initialize a Git repository in the project root and add a .gitignore for Android/Java\n- Build and run the empty project to verify successful setup\n</info added on 2025-06-26T06:47:04.782Z>",
+        "testStrategy": "Verify project compiles successfully and basic dependencies are included.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Splash Screen UI",
+        "description": "Implement the Splash Screen UI with the app logo and animation. Include a 'Get Started' button.",
+        "details": "Create an Activity or Fragment for the Splash Screen. Design the layout using XML, including an ImageView for the logo and a Button for 'Get Started'. Implement a simple animation for the logo. The button should initially be visible.",
+        "testStrategy": "Verify the Splash Screen displays correctly with the logo, animation, and 'Get Started' button visible.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Develop Local Authentication Token Handling",
+        "description": "Create a utility class or mechanism for securely storing and retrieving the user authentication token locally (e.g., SharedPreferences, EncryptedSharedPreferences).",
+        "details": "Use Android's `SharedPreferences` or `EncryptedSharedPreferences` (recommended for security) to save and retrieve the authentication token received after successful login. Implement methods for saving, retrieving, and clearing the token.",
+        "testStrategy": "Write unit tests for the utility methods to ensure tokens are saved, retrieved, and cleared correctly. Manually test saving and retrieving a dummy token.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Login Screen UI",
+        "description": "Design and implement the UI for the Login Screen with Email and Password fields, Login button, and a Register button.",
+        "details": "Create an Activity or Fragment for the Login Screen. Use XML layout with `TextInputLayout` for Email and Password fields. Add Buttons for 'Login' and 'Register'. Apply Material Components styling.",
+        "testStrategy": "Verify the Login Screen layout renders correctly on different screen sizes. Ensure input fields and buttons are interactive.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement Registration Screen UI",
+        "description": "Design and implement the UI for the Registration Screen with fields for Name, Email, Phone, Password, Address, and a Register button.",
+        "details": "Create an Activity or Fragment for the Registration Screen. Use XML layout with `TextInputLayout` for Name, Email, Phone, Password, and Address. Add a Button for 'Register'. Apply Material Components styling.",
+        "testStrategy": "Verify the Registration Screen layout renders correctly. Ensure all input fields and the button are present and interactive.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Authentication Navigation Logic",
+        "description": "Implement the navigation logic for the authentication flow: Splash Screen checks token and navigates to Login or Home; Login navigates to Home on success or Registration; Registration navigates to Login or Home on success.",
+        "details": "In the Splash Screen Activity/Fragment, check for the existence of a token using the local token utility (Task 3). Navigate to Home if a token exists, otherwise navigate to Login. Implement `OnClickListener` for buttons on Login and Registration screens to handle navigation using Intents or Navigation Component.",
+        "testStrategy": "Test navigation paths: App launch (with/without token), Login success/failure, Register success. Verify correct screen is displayed after each action.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement Home Screen Basic UI",
+        "description": "Design and implement the basic UI for the Home Screen, including a Search Bar, a placeholder for the Google Map View, and a container for the Bottom Navigation Bar.",
+        "details": "Create an Activity or Fragment for the Home Screen. Use XML layout to structure the screen with a `SearchView` or `EditText` for the search bar, a `FrameLayout` or similar container for the map (initially empty or showing a placeholder), and a `CoordinatorLayout` or `LinearLayout` to hold the main content and a `BottomNavigationView`.",
+        "testStrategy": "Verify the Home Screen layout displays correctly with all major components (search bar, map area, bottom nav area) in place.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Bottom Navigation Bar",
+        "description": "Implement the Bottom Navigation Bar on the Home Screen with icons and labels for Home, My Bookings, and Profile.",
+        "details": "Add a `BottomNavigationView` to the Home Screen layout (Task 7). Define a menu resource file (`res/menu`) with items for Home, My Bookings, and Profile. Attach the menu to the `BottomNavigationView`. Implement listeners to handle item selection (initially just logging or showing a Toast).",
+        "testStrategy": "Verify the Bottom Navigation Bar is visible and contains the correct items. Ensure clicking items provides visual feedback.",
+        "priority": "high",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement Parking Lot List UI",
+        "description": "Design and implement the UI for displaying a list of parking lots, including layout for each list item showing name, address, availability badge, and distance.",
+        "details": "Create a Fragment or Activity for the Parking Lot List. Use a `RecyclerView` to display the list. Design a custom XML layout for a single list item (`list_item_parking_lot.xml`) including `TextViews` for name, address, distance, and a `TextView` or `ImageView` for the availability badge (using a background color or drawable). Create a basic Adapter for the RecyclerView to display mock data.",
+        "testStrategy": "Verify the list layout renders correctly. Ensure mock data is displayed in the list items as expected.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Parking Lot Details UI",
+        "description": "Design and implement the UI for the Parking Lot Details screen, displaying static/placeholder data for availability, rates, hours, and reviews summary.",
+        "details": "Create a Fragment or Activity for the Parking Lot Details screen. Use XML layout to display `TextViews` or other appropriate views for lot name, address, availability, rates, operating hours, and reviews summary. Use placeholder text or mock data initially. Include a 'Book Slot' button.",
+        "testStrategy": "Verify the Details screen layout renders correctly and displays the static/placeholder information.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Implement Booking Screen UI",
+        "description": "Design and implement the UI for the Booking screen, allowing users to select start/end date and time, displaying calculated duration and estimated cost.",
+        "details": "Create a Fragment or Activity for the Booking screen. Use XML layout with `TextViews` or `EditTexts` for displaying lot info (passed from details), and interactive elements like `Button` or `EditText` with `OnClickListener` to trigger Date and Time Picker dialogs. Include `TextViews` to display calculated duration and estimated cost (initially based on mock rate). Add a 'Confirm Booking' button.",
+        "testStrategy": "Verify the Booking screen layout is correct. Test opening Date and Time pickers. Ensure duration and cost fields update (even with mock logic).",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Implement Booking Confirmation UI",
+        "description": "Design and implement the UI for the Booking Confirmation screen, displaying booking details like ID, date, time, slot info, and a 'Go to My Bookings' button.",
+        "details": "Create a Fragment or Activity for the Booking Confirmation screen. Use XML layout to display `TextViews` for booking ID, lot details, date, time, and slot information. Include a placeholder for a QR code (e.g., an `ImageView`). Add a 'Go to My Bookings' button.",
+        "testStrategy": "Verify the Confirmation screen layout is correct and displays placeholder booking details.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement My Bookings Screen UI",
+        "description": "Design and implement the UI for the My Bookings screen, including tabs for Upcoming and Past bookings and a list view for reservations.",
+        "details": "Create a Fragment or Activity for My Bookings. Use a `TabLayout` and `ViewPager2` to implement the Upcoming and Past tabs. Inside each tab's Fragment, use a `RecyclerView` to display a list of bookings. Design a custom XML layout for a booking list item showing date/time, location, and status. Use mock data initially.",
+        "testStrategy": "Verify the My Bookings screen displays tabs correctly. Ensure the list view within tabs renders mock booking data.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Implement Track & Navigate Integration (Google Maps Intent)",
+        "description": "Implement functionality to open the native Google Maps app with the parking lot destination prefilled for navigation.",
+        "details": "Create a utility method or integrate logic within the My Bookings or Details screen to construct a Google Maps Intent (`ACTION_VIEW` with `geo:` URI). The URI should include the parking lot's coordinates or address. Handle cases where Google Maps is not installed.",
+        "testStrategy": "Test clicking a 'Navigate' or 'Track' button (once added) successfully launches the Google Maps app with the correct destination.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Implement Payment Screen Placeholder UI",
+        "description": "Design and implement a placeholder UI for the Payment screen, indicating where payment method selection or integration will occur.",
+        "details": "Create a Fragment or Activity for the Payment screen. Use XML layout to create a simple screen with a title like 'Payment Options' and placeholder text or buttons indicating where card input, UPI options, or redirects to payment providers will be implemented later.",
+        "testStrategy": "Verify the Payment screen placeholder UI displays correctly.",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Implement Rate & Review Screen UI",
+        "description": "Design and implement the UI for the Rate & Review screen, including a star rating input, optional text review field, and an optional image upload button.",
+        "details": "Create a Fragment or Activity for the Rate & Review screen. Use XML layout with a `RatingBar` for star rating, an `EditText` for the text review, and a Button for image upload (initially non-functional). Add a 'Submit' button.",
+        "testStrategy": "Verify the Rate & Review screen layout is correct and interactive elements are present.",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Implement Profile / Settings Screen UI",
+        "description": "Design and implement the UI for the Profile / Settings screen, displaying user information and including an Edit Profile action and a Logout button.",
+        "details": "Create a Fragment or Activity for the Profile screen. Use XML layout to display `TextViews` for user info (Name, Email, Phone, Address - initially placeholder). Include Buttons or other interactive elements for 'Edit Profile' and 'Logout'.",
+        "testStrategy": "Verify the Profile screen layout is correct and displays placeholder user information and action buttons.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement Navigation: Home/List -> Lot Details",
+        "description": "Implement navigation from the Home Screen (Map/List view) to the Parking Lot Details screen when a lot is selected.",
+        "details": "Add `OnClickListener` to list items in the Parking Lot List (Task 9) and potentially map pins (once implemented in Task 30). When clicked, create an Intent or use Navigation Component to navigate to the Parking Lot Details Activity/Fragment (Task 10), passing the selected lot's ID or data.",
+        "testStrategy": "From the Home/List view, click on a list item/map pin and verify navigation to the Details screen occurs.",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          9,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement Booking Flow Navigation",
+        "description": "Implement the navigation flow for booking: Lot Details -> Booking Screen -> Booking Confirmation -> My Bookings.",
+        "details": "Implement `OnClickListener` for the 'Book Slot' button on the Details screen (Task 10) to navigate to the Booking screen (Task 11). Implement `OnClickListener` for 'Confirm Booking' on the Booking screen to navigate to the Confirmation screen (Task 12). Implement `OnClickListener` for 'Go to My Bookings' on the Confirmation screen to navigate to the My Bookings screen (Task 13). Pass necessary data between screens.",
+        "testStrategy": "Follow the booking flow path (Details -> Booking -> Confirmation -> My Bookings) and verify correct screen transitions and data passing (using mock data).",
+        "priority": "medium",
+        "dependencies": [
+          10,
+          11,
+          12,
+          13,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Implement Navigation from My Bookings",
+        "description": "Implement navigation from the My Bookings list items to view booking details (potentially reusing Lot Details UI or a dedicated view) and trigger the Track & Navigate action.",
+        "details": "Add `OnClickListener` to list items in the My Bookings list (Task 13). Clicking an item should navigate to a details view (could be a modified Lot Details or a new Booking Details screen). Add a button or action within the booking details view to trigger the Track & Navigate functionality (Task 14).",
+        "testStrategy": "From My Bookings, click a booking item and verify navigation to details. From details, click 'Track' and verify Google Maps opens.",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement Navigation: Bottom Nav -> Profile",
+        "description": "Implement navigation from the Bottom Navigation Bar to the Profile/Settings screen.",
+        "details": "In the Home Activity/Fragment, handle item selection for the Profile item in the `BottomNavigationView` (Task 8). Replace the current fragment or start a new Activity to display the Profile/Settings screen (Task 17).",
+        "testStrategy": "Click the Profile item in the Bottom Navigation and verify the Profile screen is displayed.",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Logout Functionality",
+        "description": "Implement the Logout functionality, clearing the local authentication token and navigating the user back to the Login screen.",
+        "details": "Add an `OnClickListener` to the Logout button on the Profile screen (Task 17). When clicked, use the local token utility (Task 3) to clear the saved token. Navigate the user back to the Login screen (Task 4), clearing the activity stack so they cannot navigate back to authenticated screens.",
+        "testStrategy": "From the Profile screen, click Logout. Verify the token is cleared (check manually or via logs) and the app navigates to the Login screen. Ensure pressing back does not return to the Profile/Home screen.",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          17,
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Integrate Login API",
+        "description": "Integrate the Login API endpoint. Connect the Login UI to send credentials, handle API response, save the token on success, and handle errors.",
+        "details": "Use a networking library (e.g., Retrofit, Volley) to make a POST request to the Login API endpoint. On successful response, parse the token and use the local token utility (Task 3) to save it. Navigate to the Home screen (Task 6). On failure, display an error message to the user.",
+        "testStrategy": "Test login with valid credentials (using mock API response or actual backend if available). Verify token is saved and navigation to Home occurs. Test with invalid credentials and verify error message is displayed.",
+        "priority": "high",
+        "dependencies": [
+          4,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Integrate Registration API",
+        "description": "Integrate the Registration API endpoint. Connect the Registration UI to send user details, handle API response, and navigate on success.",
+        "details": "Use a networking library (e.g., Retrofit, Volley) to make a POST request to the Registration API endpoint, sending user details from the UI (Task 5). On successful response, navigate to the Login screen (Task 6) or Home screen as per PRD. On failure, display an error message.",
+        "testStrategy": "Test registration with valid data (using mock API response or actual backend). Verify navigation on success. Test with invalid/duplicate data and verify error message.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Integrate Home/List API (Fetch Nearby Lots)",
+        "description": "Integrate the API to fetch nearby parking lots. Update the Home screen map placeholder and the Parking Lot List with data from the API.",
+        "details": "Use a networking library to make a GET request to the API endpoint for nearby lots, potentially sending current location coordinates. Parse the response. Update the RecyclerView Adapter (Task 9) with the fetched list data. Prepare data to be displayed on the map (Task 30).",
+        "testStrategy": "Verify API call is made when Home screen loads. Verify the Parking Lot List displays data fetched from the API instead of mock data.",
+        "priority": "high",
+        "dependencies": [
+          7,
+          9,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Integrate Parking Lot Details API",
+        "description": "Integrate the API to fetch details for a specific parking lot. Update the Parking Lot Details screen with data from the API.",
+        "details": "When navigating to the Parking Lot Details screen (Task 18), use the lot ID passed to make a GET request to the API endpoint for lot details. Parse the response and update the UI elements (Task 10) with actual availability, rates, hours, and reviews summary.",
+        "testStrategy": "Navigate to a Lot Details screen. Verify API call is made and the screen displays data fetched from the API.",
+        "priority": "medium",
+        "dependencies": [
+          10,
+          18,
+          25
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Integrate Booking API",
+        "description": "Integrate the API to submit a booking request. Handle the API response and navigate to the Booking Confirmation screen on success.",
+        "details": "On the Booking screen (Task 11), add an `OnClickListener` to the 'Confirm Booking' button. Collect booking details (lot ID, dates, times). Use a networking library to make a POST request to the Booking API endpoint. On successful response (including booking ID), navigate to the Confirmation screen (Task 19), passing the booking details received from the API. Handle API errors.",
+        "testStrategy": "Complete the booking flow with valid data. Verify API call is made, and on success, the Confirmation screen displays details received from the API.",
+        "priority": "high",
+        "dependencies": [
+          11,
+          19,
+          26
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Integrate My Bookings API",
+        "description": "Integrate the API to fetch the user's upcoming and past bookings. Update the My Bookings screen lists with data from the API.",
+        "details": "When the My Bookings screen loads (Task 20), use a networking library to make GET requests to the API endpoints for upcoming and past bookings. Parse the responses and update the RecyclerView Adapters for the Upcoming and Past tabs (Task 13) with the fetched data.",
+        "testStrategy": "Navigate to the My Bookings screen. Verify API calls are made and the lists display booking data fetched from the API.",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          20
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Integrate Profile API",
+        "description": "Integrate the API to fetch and potentially update the user's profile information. Update the Profile screen with data from the API.",
+        "details": "When the Profile screen loads (Task 21), use a networking library to make a GET request to the Profile API endpoint. Parse the response and update the UI elements (Task 17) with the user's actual information. Implement logic for the 'Edit Profile' action, which might involve another screen or dialog and a PUT request to update the profile.",
+        "testStrategy": "Navigate to the Profile screen. Verify API call is made and the screen displays user data fetched from the API. (Optional: Test profile update if implemented).",
+        "priority": "medium",
+        "dependencies": [
+          17,
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Implement Embedded Google Map View and Display Pins",
+        "description": "Replace the map placeholder on the Home screen with an actual embedded Google Map View and display parking lot locations as pins.",
+        "details": "Add the Google Maps SDK dependency. Replace the map placeholder container (Task 7) with a `SupportMapFragment` or `MapView`. Obtain a `GoogleMap` object asynchronously. Add markers (pins) to the map for each parking lot fetched from the API (Task 25), using different pin colors based on availability (Task 33). Center the map initially based on the user's location or fetched lot locations.",
+        "testStrategy": "Verify the Google Map loads correctly on the Home screen. Ensure parking lot locations fetched from the API are displayed as pins on the map.",
+        "priority": "high",
+        "dependencies": [
+          7,
+          25
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Implement Search Functionality",
+        "description": "Implement the search functionality on the Home screen, allowing users to search for locations and update the map/list view.",
+        "details": "Add a listener to the Search Bar (Task 7). When the user types or submits a query, trigger an API call (potentially reusing or modifying Task 25's API call) to search for lots near the entered location. Update the map view (Task 30) and the list view (Task 9) with the search results.",
+        "testStrategy": "Enter a location in the search bar. Verify search results update the map and list view.",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          25,
+          30
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Implement 'Use Current Location' Feature",
+        "description": "Implement the 'Use Current Location' button functionality to get the user's current location and update the map/list view.",
+        "details": "Add an `OnClickListener` to the 'Use Current Location' button (Task 7). Request location permissions if not granted. Use the Fused Location Provider API to get the user's last known or current location. Use this location to trigger an API call for nearby lots (Task 25) and center the map (Task 30) on the user's location.",
+        "testStrategy": "Click the 'Use Current Location' button. Grant permissions if prompted. Verify the map centers on the current location and nearby lots are displayed.",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          25,
+          30
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Implement Slot Availability Visual Indicators",
+        "description": "Implement the visual display of slot availability using color badges in the list view and pin colors on the map.",
+        "details": "Modify the list item layout and Adapter (Task 9) to set the background color or text color of the availability badge based on the availability data received from the API (Task 25). Modify the map integration logic (Task 30) to use different colored marker icons based on the availability data received from the API (Task 25).",
+        "testStrategy": "Verify list items and map pins display different colors corresponding to the availability status (e.g., green for available, red for full).",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          10,
+          25,
+          26,
+          30
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Implement Distance Calculation and Display",
+        "description": "Implement the calculation and display of the distance from the user's current location to each parking lot in the list view.",
+        "details": "Once the user's current location is obtained (Task 32) and parking lot data is fetched (Task 25), calculate the distance between the current location and each lot's location using Android's `Location.distanceBetween()` or similar method. Update the list item layout and Adapter (Task 9) to display this calculated distance.",
+        "testStrategy": "Verify the distance displayed for each parking lot in the list view is calculated correctly based on the current location.",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          25,
+          32
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Implement Booking Cancellation",
+        "description": "Implement the booking cancellation functionality, including a UI action (e.g., button) on applicable bookings and integration with the cancellation API.",
+        "details": "Add a 'Cancel' button or option to booking items in the My Bookings list (Task 13), specifically for upcoming bookings. Add an `OnClickListener` to this action. Use a networking library to make a DELETE or POST request to the Booking Cancellation API endpoint, sending the booking ID. Handle the API response (success/failure) and update the My Bookings list (Task 28) upon successful cancellation.",
+        "testStrategy": "On an upcoming booking, click the 'Cancel' action. Verify API call is made and the booking status is updated or removed from the list upon success.",
+        "priority": "low",
+        "dependencies": [
+          13,
+          28
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "Integrate Payment Flow",
+        "description": "Integrate the payment flow, connecting the booking confirmation or My Bookings screen to the Payment screen/provider.",
+        "details": "Determine the payment integration strategy (e.g., redirect to a web view, use a payment SDK, or collect card details directly). Connect the 'Confirm Booking' success flow (Task 27) or a 'Pay Now' action on a booking item (Task 13) to initiate the payment process, potentially navigating to the Payment screen (Task 15) or triggering an external payment flow. Handle payment success and failure callbacks.",
+        "testStrategy": "Trigger the payment flow from a booking. Verify the payment screen/process is initiated. (Testing actual payment requires a test environment).",
+        "priority": "medium",
+        "dependencies": [
+          12,
+          13,
+          15,
+          27
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Implement Rate & Review Submission",
+        "description": "Integrate the API to submit a rating and review for a past booking.",
+        "details": "Add a 'Rate & Review' action to past booking items in the My Bookings list (Task 13). Add an `OnClickListener` to this action to navigate to the Rate & Review screen (Task 16), passing the booking ID. On the Rate & Review screen, add an `OnClickListener` to the 'Submit' button. Collect the rating, review text, and image (if implemented). Use a networking library to make a POST request to the Rate & Review API endpoint. Handle the API response.",
+        "testStrategy": "On a past booking, click 'Rate & Review'. Submit a rating and review. Verify API call is made and the submission is successful.",
+        "priority": "low",
+        "dependencies": [
+          16,
+          28
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-26T06:42:12.971Z",
+      "updated": "2025-06-26T12:58:51.704Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

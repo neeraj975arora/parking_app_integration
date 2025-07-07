@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <!-- Top Bar -->
+    <TextView
+        android:id="@+id/tvProfileTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Personal details"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary_dark"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <!-- Name Row -->
+    <TextView
+        android:id="@+id/tvProfileName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User Name"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary_dark"
+        app:layout_constraintTop_toBottomOf="@id/tvProfileTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivEditName"
+        android:layout_marginTop="32dp"
+        android:layout_marginStart="32dp" />
+
+    <ImageView
+        android:id="@+id/ivEditName"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_edit"
+        android:tint="@color/green"
+        app:layout_constraintBottom_toBottomOf="@id/tvProfileName"
+        app:layout_constraintStart_toEndOf="@id/tvProfileName"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="32dp" />
+
+    <!-- Email -->
+    <TextView
+        android:id="@+id/tvProfileEmail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="user@email.com"
+        android:textSize="16sp"
+        android:textColor="@color/primary_dark"
+        app:layout_constraintTop_toBottomOf="@id/tvProfileName"
+        app:layout_constraintStart_toStartOf="@id/tvProfileName"
+        android:layout_marginTop="8dp" />
+
+    <!-- Email Verification (optional, red) -->
+    <TextView
+        android:id="@+id/tvEmailVerification"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="! Email verification pending"
+        android:textSize="14sp"
+        android:textColor="#D32F2F"
+        app:layout_constraintTop_toBottomOf="@id/tvProfileEmail"
+        app:layout_constraintStart_toStartOf="@id/tvProfileEmail"
+        android:layout_marginTop="4dp"
+        android:drawableLeft="@drawable/ic_warning"
+        android:visibility="gone" />
+
+    <!-- Customer ID -->
+    <TextView
+        android:id="@+id/tvProfileCustomerId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Customer ID: 123456"
+        android:textSize="14sp"
+        android:textColor="@color/primary_dark"
+        app:layout_constraintTop_toBottomOf="@id/tvEmailVerification"
+        app:layout_constraintStart_toStartOf="@id/tvProfileEmail"
+        android:layout_marginTop="8dp" />
+
+    <!-- Address Row -->
+    <ImageView
+        android:id="@+id/ivAddressIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_home"
+        android:tint="@color/green"
+        app:layout_constraintTop_toBottomOf="@id/tvProfileCustomerId"
+        app:layout_constraintStart_toStartOf="@id/tvProfileCustomerId"
+        android:layout_marginTop="32dp" />
+
+    <TextView
+        android:id="@+id/tvProfileAddressLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Address"
+        android:textSize="16sp"
+        android:textColor="@color/green"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/ivAddressIcon"
+        app:layout_constraintStart_toEndOf="@id/ivAddressIcon"
+        android:layout_marginStart="8dp" />
+
+    <TextView
+        android:id="@+id/tvProfileAddress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="User Address"
+        android:textSize="16sp"
+        android:textColor="@color/primary_dark"
+        app:layout_constraintTop_toBottomOf="@id/ivAddressIcon"
+        app:layout_constraintStart_toStartOf="@id/ivAddressIcon"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="32dp" />
+
+    <!-- Phone Row -->
+    <ImageView
+        android:id="@+id/ivPhoneIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_phone"
+        android:tint="@color/green"
+        app:layout_constraintTop_toBottomOf="@id/tvProfileAddress"
+        app:layout_constraintStart_toStartOf="@id/ivAddressIcon"
+        android:layout_marginTop="32dp" />
+
+    <TextView
+        android:id="@+id/tvProfilePhoneLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Phone number"
+        android:textSize="16sp"
+        android:textColor="@color/green"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/ivPhoneIcon"
+        app:layout_constraintStart_toEndOf="@id/ivPhoneIcon"
+        android:layout_marginStart="8dp" />
+
+    <TextView
+        android:id="@+id/tvProfilePhone"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="User Phone"
+        android:textSize="16sp"
+        android:textColor="@color/primary_dark"
+        app:layout_constraintTop_toBottomOf="@id/ivPhoneIcon"
+        app:layout_constraintStart_toStartOf="@id/ivPhoneIcon"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="32dp" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/white"
+        app:itemIconTint="@color/green"
+        app:itemTextColor="@color/green"
+        app:menu="@menu/bottom_nav_menu"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout> 
