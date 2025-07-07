@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        img {
+            width: 80%;
+            border: 2px solid black;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Parking Spot Detection</h1>
+    <button onclick="updateImage()">Process New Frame</button>
+    <br><br>
+    <img id="resultImage" src="{{ image_url }}" alt="Processed Image">
+
+    <script>
+        function updateImage() {
+            const imageElement = document.getElementById("resultImage");
+            imageElement.src = "/process?" + new Date().getTime();
+        }
+    </script>
+</body>
+</html>

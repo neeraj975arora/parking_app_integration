@@ -1,0 +1,166 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Implement Database Schemas",
+        "description": "Implement the database schemas for ParkingLotDetails and Slot models as defined in the PRD, using the specified ORM (implied SQLAlchemy based on syntax).",
+        "details": "Create Python classes for ParkingLotDetails and Slot mirroring the provided schema definitions. Define columns with correct types, constraints (nullable, primary_key, foreign_key), and default values. Include the relationship definition for ParkingLotDetails to Floor (though Floor schema is not provided, the relationship is mentioned). Ensure the Slot model includes denormalized floor_id and parkinglot_id.",
+        "testStrategy": "Verify that the database tables are created with the correct structure, column types, and basic constraints by inspecting the database schema after migration/creation.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Slot Unique Constraint",
+        "description": "Add a unique constraint to the 'slots' table to prevent duplicate slot names within the same parking lot, as suggested in the Appendix.",
+        "details": "Modify the Slot model definition to include the `__table_args__` with a `db.UniqueConstraint` on `slot_name` and `parkinglot_id`, named 'unique_slot_per_lot'. Apply necessary database migrations.",
+        "testStrategy": "Attempt to insert two slots with the same name and parkinglot_id into the database. Verify that the insertion fails due to the unique constraint violation.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement Dummy Parking Lot Creation Script",
+        "description": "Ensure a dummy parking lot entry exists in the system. This will be created manually using the system's administrative interface or database, based on the specific data provided in the PRD (Feature 4.1).",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "medium",
+        "details": "Manually create a parking lot entry in the system. Use the administrative interface or directly insert into the database if necessary. The parking lot details should match the specifications in the PRD, including fields like name, address, zip code, city, state, country, phone number, opening time, closing time, total floors, total rows, etc. Record the ID of the newly created parking lot for use in subsequent steps.",
+        "testStrategy": "Verify that the parking lot was successfully created manually in the system. Check the administrative interface or query the database to confirm the parking lot exists and has the correct details as specified in the PRD. Note down the ID of the created parking lot.",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Slot Population Script from JSON",
+        "description": "Manually create the necessary parking slots in the system and link them to the dummy parking lot created in the previous step.",
+        "status": "done",
+        "dependencies": [
+          1,
+          3
+        ],
+        "priority": "medium",
+        "details": "Instead of using a script, parking slots will be created manually within the system. Ensure that a sufficient number of slots are created and correctly associated with the dummy parking lot (created in task 3). This manual creation step is required before proceeding with tasks that depend on the existence of parking slots.",
+        "testStrategy": "Verify in the system's interface or database that parking slots have been manually created and are correctly linked to the dummy parking lot ID. Confirm that a reasonable number of slots exist for testing purposes.",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Set Up Background Scheduler",
+        "description": "Set up a background scheduling mechanism (APScheduler or Celery) to run periodic tasks.",
+        "details": "Choose either APScheduler or Celery. Install the necessary libraries. Configure the scheduler to be able to run functions at specified intervals (e.g., every 5 minutes). Ensure it can run independently or as part of the application's background processes.",
+        "testStrategy": "Set up a simple test job that logs a message. Configure the scheduler to run this job every minute. Verify that the log message appears at the expected interval.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement ML Integration and Output Processing",
+        "description": "Implement the logic to integrate with the custom ML inference endpoint, send video feed data (or reference), and process the JSON output containing slot occupancy predictions.",
+        "details": "Create a Python function that handles communication with the ML API. This function should take the necessary input (e.g., video feed reference, or the feed itself if required by the API) and make a request to the ML endpoint. Parse the JSON response, which is expected to be a list of objects like `[ { 'name': 'A1', 'status': 1 }, ... ]`. Return the parsed list of slot statuses.",
+        "testStrategy": "Simulate the ML API response with sample JSON data. Call the integration function with dummy input and verify that it correctly parses the sample JSON output and returns the expected list of slot name/status pairs.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement Individual Slot Status Update Function",
+        "description": "Implement a database function to update the `status` field for individual slots based on the ML analysis results.",
+        "details": "Create a Python function that takes a list of slot updates (e.g., `[ { 'name': 'A1', 'status': 1 }, ... ]`) and the parking lot ID. For each update in the list, query the `slots` table to find the slot by its `name` and `parkinglot_id`. Update the `status` field of the found slot object in the database session. Commit the changes after processing all updates.",
+        "testStrategy": "Insert sample slots into the database. Call the update function with a list of updates for these slots. Query the database to confirm that the `status` field for the specified slots has been correctly updated (0 for free, 1 for occupied).",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Available Slots Recalculation Logic",
+        "description": "Implement the logic to recalculate the total number of available (free) slots for a given parking lot.",
+        "details": "Create a Python function that takes a parking lot ID. Use the ORM (SQLAlchemy) to query the `slots` table, filtering by the given `parkinglot_id` and where the `status` is 0 (free). Count the number of results from this query. Return the calculated count.",
+        "testStrategy": "Insert sample slots with mixed statuses (0 and 1) for a specific parking lot ID. Call the recalculation function with that parking lot ID. Verify that the returned count matches the number of slots with status 0.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement Total Available Slots Update Function",
+        "description": "Implement a database function to update the `total_slots` field in the `parkinglots_details` table with the newly calculated available slot count.",
+        "details": "Create a Python function that takes a parking lot ID and the calculated available slot count. Query the `parkinglots_details` table to find the parking lot by its ID. Update the `total_slots` field of the found parking lot object with the provided count. Commit the changes to the database.",
+        "testStrategy": "Create a dummy parking lot entry. Call the update function with the parking lot ID and a sample available count. Query the database to confirm that the `total_slots` field for that parking lot has been updated to the sample count.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Create Periodic Slot Status Update Background Job",
+        "description": "Create the main background job function that orchestrates the periodic update process: calling the ML integration, updating individual slot statuses, recalculating available slots, and updating the total count.",
+        "details": "Create a Python function that will be scheduled by the background scheduler. This function should: 1. Call the ML integration function (Task 6) to get the latest slot statuses for a specific parking lot (or iterate through all lots if supporting multiple). 2. Call the individual slot status update function (Task 7) with the results. 3. Call the available slots recalculation logic (Task 8) for the parking lot. 4. Call the total available slots update function (Task 9) with the result.",
+        "testStrategy": "Manually trigger the background job function. Verify that it calls the dependent functions in the correct sequence. Check the database to confirm that individual slot statuses and the total available slot count for the target parking lot are updated based on simulated ML results.",
+        "priority": "high",
+        "dependencies": [
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Schedule Periodic Slot Status Update Job",
+        "description": "Configure the background scheduler to run the periodic slot status update job at the specified frequency (every 5 minutes).",
+        "details": "Use the configured background scheduler (APScheduler/Celery) to add the background job function (Task 10) as a scheduled task. Set the trigger to run periodically, specifically every 5 minutes, as required by the PRD.",
+        "testStrategy": "Start the scheduler. Monitor the system logs or database timestamps to confirm that the background job is being executed automatically at approximately 5-minute intervals.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Add Error Handling for ML Integration",
+        "description": "Add error handling and retry logic within the background job, specifically for potential failures when interacting with the ML API or video feed.",
+        "details": "Modify the background job function (Task 10) to include try-except blocks around the call to the ML integration function (Task 6). Implement logging for errors. Consider adding retry logic (e.g., using a library like Tenacity) for transient ML API or video feed issues, as suggested by the reliability requirement and risk mitigation.",
+        "testStrategy": "Simulate a failure in the ML integration function (e.g., raise an exception or return an error status). Trigger the background job and verify that the error is caught, logged, and that the job doesn't crash the scheduler. If retry logic is implemented, verify that retries occur as expected.",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-25T10:46:32.213Z",
+      "updated": "2025-06-25T10:46:32.214Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
