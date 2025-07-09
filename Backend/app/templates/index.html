@@ -20,6 +20,45 @@
         <p>You can find the interactive API documentation (Swagger UI) here:</p>
         <p><a href="/apidocs">/apidocs</a></p>
         <hr>
+        <h2>Register Super Admin</h2>
+        <form id="superAdminForm">
+            <label>Name:<br><input type="text" name="user_name" required></label><br><br>
+            <label>Email:<br><input type="email" name="user_email" required></label><br><br>
+            <label>Password:<br><input type="password" name="user_password" required></label><br><br>
+            <label>Phone Number:<br><input type="text" name="user_phone_no" required></label><br><br>
+            <label>Address:<br><input type="text" name="user_address"></label><br><br>
+            <label>Super Admin Secret:<br><input type="password" name="super_admin_secret" required></label><br><br>
+            <button type="submit">Register Super Admin</button>
+        </form>
+        <div id="superAdminMsg" style="margin-top:10px;"></div>
+        <script>
+        document.getElementById('superAdminForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                user_name: form.user_name.value,
+                user_email: form.user_email.value,
+                user_password: form.user_password.value,
+                user_phone_no: form.user_phone_no.value,
+                user_address: form.user_address.value,
+                super_admin_secret: form.super_admin_secret.value
+            };
+            const res = await fetch('/auth/register_super_admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const msg = document.getElementById('superAdminMsg');
+            const result = await res.json();
+            if (res.ok) {
+                msg.style.color = 'green';
+                msg.textContent = result.msg + ' (Role: ' + result.role + ')';
+            } else {
+                msg.style.color = 'red';
+                msg.textContent = result.msg || 'Registration failed.';
+            }
+        };
+        </script>
         <p class="footer">This page is served by the Flask application and proxied by Nginx.</p>
     </div>
 </body>

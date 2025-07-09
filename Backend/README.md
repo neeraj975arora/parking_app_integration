@@ -64,6 +64,20 @@ docker-compose exec app flask db migrate -m "Initial migration"
 docker-compose exec app flask db upgrade
 ```
 
+---
+
+## 🗄️ Populating the Database with Initial Data
+
+After running your migrations to create the tables, you can populate your database with initial data using your SQL script. Run the following commands:
+
+```sh
+# Copy the SQL file into the running database container
+docker cp populate_parking_data.sql backend-db-1:/populate_parking_data.sql
+
+# Execute the SQL script inside the database container
+docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /populate_parking_data.sql
+```
+
 Your application is now running!
 
 ## Accessing the Application
@@ -156,3 +170,95 @@ docker-compose down
 ``` 
 =======
 # vibe_coding-parking_app_cloud_server
+
+## 🚦 New & Updated API Endpoints (v2.0)
+
+The following endpoints have been added or updated in Version 2.0. All admin endpoints require a JWT token for a user with `role: admin`.
+
+### Vehicle Session Management
+
+#### Vehicle Check-In
+- **POST** `/admin/session/checkin`
+- **Request:**
+  ```json
+  {
+    "vehicle_reg_no": "DL01AB1234",
+    "slot_id": 12,
+    "lot_id": 3,
+    "vehicle_type": "Car"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "msg": "Vehicle checked in",
+    "session_id": "<uuid>"
+  }
+  ```
+
+#### Vehicle Check-Out
+- **POST** `/admin/session/checkout`
+- **Request:**
+  ```json
+  {
+    "vehicle_reg_no": "DL01AB1234"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "amount_paid": 40.0,
+    "duration_hours": 2,
+    "checkout_time": "2025-07-04T13:10:00Z"
+  }
+  ```
+
+### Admin APIs
+
+#### Get Parking Lots for Admin
+- **GET** `/admin_lots/<admin_id>`
+- **Response:**
+  ```json
+  {
+    "admin_id": 1,
+    "parking_lot_ids": [1, 2, 3]
+  }
+  ```
+
+#### Daily Closure & Outstanding Payment
+- **POST** `/admin/closure`
+- **Request:**
+  ```json
+  {
+    "date": "2025-07-04",
+    "payment_made": 500.0
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "opening_balance": 1000.0,
+    "today_collection": 800.0,
+    "payment_made": 500.0,
+    "closing_balance": 1300.0
+  }
+  ```
+
+---
+
+## 🔒 Role-Based Access Control (RBAC)
+- All `/admin/*` endpoints require a valid JWT for a user with `role: admin`.
+- Non-admins receive a `403 Forbidden` response.
+
+## 💰 Admin Payment Ledger & Daily Closure
+- Each admin has a daily ledger entry tracking:
+  - `opening_balance` (previous day's closing balance)
+  - `today_collection` (sum of all check-outs for the day)
+  - `payment_made` (amount paid by admin that day)
+  - `closing_balance` (outstanding after payment)
+- The `/admin/closure` endpoint allows admins to submit their daily payment and view outstanding balances.
+
+---
+
+## 📚 Full API Reference
+For a complete list of all endpoints and their request/response formats, see [`SmartParking_API_v2.md`](./SmartParking_API_v2.md).

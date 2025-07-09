@@ -43,6 +43,7 @@ class User(db.Model):
     user_password = db.Column(db.String(255), nullable=False)
     user_phone_no = db.Column(db.String(15), unique=True, nullable=False)
     user_address = db.Column(db.Text)
+    role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'admin'
 
     sessions = db.relationship('ParkingSession', backref='user', lazy=True)
 
@@ -91,4 +92,31 @@ class ParkingSession(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
-    duration_hrs = db.Column(db.Numeric, server_default=None) 
+    duration_hrs = db.Column(db.Numeric, server_default=None)
+    vehicle_type = db.Column(db.String(20))  # Car, Two-Wheeler, etc.
+
+class AdminParkingLot(db.Model):
+    __tablename__ = 'admin_parking_lots'
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    parking_lot_id = db.Column(db.Integer, db.ForeignKey('parkinglots_details.parkinglot_id'), nullable=False) 
+
+class AdminPaymentLedger(db.Model):
+    __tablename__ = 'admin_payment_ledger'
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    opening_balance = db.Column(db.Float, nullable=False, default=0.0)
+    today_collection = db.Column(db.Float, nullable=False, default=0.0)
+    payment_made = db.Column(db.Float, nullable=False, default=0.0)
+    closing_balance = db.Column(db.Float, nullable=False, default=0.0)
+
+    admin = db.relationship('User', back_populates='payment_ledgers')
+
+    __table_args__ = (
+        db.UniqueConstraint('admin_id', 'date', name='uix_admin_date'),
+    ) 
+
+# Add relationship to User model if not present
+if not hasattr(User, 'payment_ledgers'):
+    User.payment_ledgers = db.relationship('AdminPaymentLedger', back_populates='admin', lazy='dynamic') 

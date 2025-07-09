@@ -3,6 +3,7 @@ from .models import ParkingLotDetails, Floor, Row, Slot
 from . import db, ma
 from flask_jwt_extended import jwt_required
 from marshmallow import post_load
+from .admin import role_required
 
 # Marshmallow Schemas
 class SlotSchema(ma.Schema):
@@ -99,7 +100,7 @@ floors_schema = FloorSchema(many=True)
 parking_bp = Blueprint('parking', __name__, url_prefix='/parking')
 
 @parking_bp.route('/lots', methods=['POST'])
-@jwt_required()
+@role_required("user")
 def create_parking_lot():
     """Create a new parking lot."""
     data = request.get_json()
@@ -112,14 +113,14 @@ def create_parking_lot():
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/lots', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_parking_lots():
     """Get a list of all parking lots (summary view)."""
     lots = ParkingLotDetails.query.all()
     return jsonify(parking_lots_summary_schema.dump(lots))
 
 @parking_bp.route('/lots/<int:lot_id>', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_parking_lot(lot_id):
     """Get detailed information about a specific parking lot, including nested floors, rows, and slots."""
     lot = db.session.get(ParkingLotDetails, lot_id)
@@ -128,7 +129,7 @@ def get_parking_lot(lot_id):
     return jsonify(parking_lot_detail_schema.dump(lot))
 
 @parking_bp.route('/lots/<int:lot_id>/stats', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_parking_lot_stats(lot_id):
     """Get statistics (total, occupied, available slots) for a specific parking lot."""
     if not db.session.get(ParkingLotDetails, lot_id):
@@ -147,7 +148,7 @@ def get_parking_lot_stats(lot_id):
     return jsonify(stats)
 
 @parking_bp.route('/lots/<int:lot_id>', methods=['PUT'])
-@jwt_required()
+@role_required("user")
 def update_parking_lot(lot_id):
     """Update a parking lot's details."""
     lot = db.session.get(ParkingLotDetails, lot_id)
@@ -163,7 +164,7 @@ def update_parking_lot(lot_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/lots/<int:lot_id>', methods=['DELETE'])
-@jwt_required()
+@role_required("user")
 def delete_parking_lot(lot_id):
     """Delete a parking lot."""
     lot = db.session.get(ParkingLotDetails, lot_id)
@@ -176,7 +177,7 @@ def delete_parking_lot(lot_id):
 
 # Floor CRUD Endpoints
 @parking_bp.route('/lots/<int:lot_id>/floors', methods=['POST'])
-@jwt_required()
+@role_required("user")
 def create_floor(lot_id):
     """Create a new floor within a parking lot."""
     if not db.session.get(ParkingLotDetails, lot_id):
@@ -194,7 +195,7 @@ def create_floor(lot_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/lots/<int:lot_id>/floors', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_floors_for_lot(lot_id):
     """Get all floors for a specific parking lot."""
     lot = db.session.get(ParkingLotDetails, lot_id)
@@ -203,7 +204,7 @@ def get_floors_for_lot(lot_id):
     return jsonify(floors_schema.dump(lot.floors))
 
 @parking_bp.route('/floors/<int:floor_id>', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_floor(floor_id):
     """Get details of a specific floor."""
     floor = db.session.get(Floor, floor_id)
@@ -212,7 +213,7 @@ def get_floor(floor_id):
     return jsonify(floor_schema.dump(floor))
 
 @parking_bp.route('/floors/<int:floor_id>', methods=['PUT'])
-@jwt_required()
+@role_required("user")
 def update_floor(floor_id):
     """Update a floor's details."""
     floor = db.session.get(Floor, floor_id)
@@ -229,7 +230,7 @@ def update_floor(floor_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/floors/<int:floor_id>', methods=['DELETE'])
-@jwt_required()
+@role_required("user")
 def delete_floor(floor_id):
     """Delete a floor."""
     floor = db.session.get(Floor, floor_id)
@@ -242,7 +243,7 @@ def delete_floor(floor_id):
 
 # Row CRUD Endpoints
 @parking_bp.route('/floors/<int:floor_id>/rows', methods=['POST'])
-@jwt_required()
+@role_required("user")
 def create__row(floor_id):
     """Create a new row within a floor."""
     floor = db.session.get(Floor, floor_id)
@@ -262,7 +263,7 @@ def create__row(floor_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/floors/<int:floor_id>/rows', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_rows_for_floor(floor_id):
     """Get all rows for a specific floor."""
     floor = db.session.get(Floor, floor_id)
@@ -271,7 +272,7 @@ def get_rows_for_floor(floor_id):
     return jsonify(rows_schema.dump(floor.rows))
 
 @parking_bp.route('/rows/<int:row_id>', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_row(row_id):
     """Get details of a specific row."""
     row = db.session.get(Row, row_id)
@@ -280,7 +281,7 @@ def get_row(row_id):
     return jsonify(row_schema.dump(row))
 
 @parking_bp.route('/rows/<int:row_id>', methods=['PUT'])
-@jwt_required()
+@role_required("user")
 def update_row(row_id):
     """Update a row's details."""
     row = db.session.get(Row, row_id)
@@ -297,7 +298,7 @@ def update_row(row_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/rows/<int:row_id>', methods=['DELETE'])
-@jwt_required()
+@role_required("user")
 def delete_row(row_id):
     """Delete a row."""
     row = db.session.get(Row, row_id)
@@ -310,7 +311,7 @@ def delete_row(row_id):
 
 # Slot CRUD Endpoints
 @parking_bp.route('/rows/<int:row_id>/slots', methods=['POST'])
-@jwt_required()
+@role_required("user")
 def create_slot(row_id):
     """Create a new slot within a row."""
     row = db.session.get(Row, row_id)
@@ -331,7 +332,7 @@ def create_slot(row_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/rows/<int:row_id>/slots', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_slots_for_row(row_id):
     """Get all slots for a specific row."""
     row = db.session.get(Row, row_id)
@@ -340,7 +341,7 @@ def get_slots_for_row(row_id):
     return jsonify(slots_schema.dump(row.slots))
 
 @parking_bp.route('/slots/<int:slot_id>', methods=['GET'])
-@jwt_required()
+@role_required("user")
 def get_slot(slot_id):
     """Get details of a specific slot."""
     slot = db.session.get(Slot, slot_id)
@@ -349,7 +350,7 @@ def get_slot(slot_id):
     return jsonify(slot_schema.dump(slot))
 
 @parking_bp.route('/slots/<int:slot_id>', methods=['PUT'])
-@jwt_required()
+@role_required("user")
 def update_slot(slot_id):
     """Update a slot's details."""
     slot = db.session.get(Slot, slot_id)
@@ -366,7 +367,7 @@ def update_slot(slot_id):
         return jsonify({"error": str(e)}), 400
 
 @parking_bp.route('/slots/<int:slot_id>', methods=['DELETE'])
-@jwt_required()
+@role_required("user")
 def delete_slot(slot_id):
     """Delete a slot."""
     slot = db.session.get(Slot, slot_id)
