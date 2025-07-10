@@ -80,40 +80,21 @@ jobs:
       # Run tests with coverage and save debug log
       - name: Run tests with coverage and save debug log
         run: |
-          docker compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
+          docker compose run --rm app bash -c "pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee /app/pytest-debug.log"
         working-directory: ./Backend
 
-      # Remove old htmlcov directory on host (ignore errors)
-      - name: Remove old htmlcov directory on host (ignore errors)
-        run: sudo rm -rf htmlcov || true
-        working-directory: ./Backend
-
-      # Copy test report from container to temp, then move to avoid permission issues
-      - name: Copy test report from container
+      # Copy coverage and test artifacts from container
+      - name: Copy coverage and test artifacts from container
         run: |
           mkdir -p temp_artifacts
-          docker cp $(docker compose ps -q app):/app/pytest-report.xml temp_artifacts/pytest-report.xml
-          mv temp_artifacts/pytest-report.xml pytest-report.xml
-          rmdir temp_artifacts
-        working-directory: ./Backend
-
-      # Copy coverage report from container to temp, then move to avoid permission issues
-      - name: Copy coverage report from container
-        run: |
-          mkdir -p temp_artifacts
-          docker cp $(docker compose ps -q app):/app/htmlcov temp_artifacts/htmlcov
-          rm -rf htmlcov
-          mv temp_artifacts/htmlcov ./
-          rmdir temp_artifacts
-        working-directory: ./Backend
-
-      # Copy debug log from container to temp, then move to avoid permission issues
-      - name: Copy debug log from container
-        run: |
-          mkdir -p temp_artifacts
-          docker cp $(docker compose ps -q app):/app/pytest-debug.log temp_artifacts/pytest-debug.log
-          mv temp_artifacts/pytest-debug.log pytest-debug.log
-          rmdir temp_artifacts
+          container_id=$(docker ps -a --filter "name=backend-app-*" --format "{{.ID}}" | head -n 1)
+          docker cp "$container_id":/app/htmlcov temp_artifacts/htmlcov || echo "htmlcov not found"
+          docker cp "$container_id":/app/pytest-debug.log temp_artifacts/pytest-debug.log || echo "debug log not found"
+          docker cp "$container_id":/app/pytest-report.xml temp_artifacts/pytest-report.xml || echo "report not found"
+          mv temp_artifacts/htmlcov ./htmlcov || true
+          mv temp_artifacts/pytest-debug.log ./pytest-debug.log || true
+          mv temp_artifacts/pytest-report.xml ./pytest-report.xml || true
+          rmdir temp_artifacts || true
         working-directory: ./Backend
 
       # Upload test report artifact
