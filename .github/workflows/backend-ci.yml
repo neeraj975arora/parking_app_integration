@@ -97,6 +97,22 @@ jobs:
           rmdir temp_artifacts || true
         working-directory: ./Backend
 
+      # Install junit2html for XML to HTML conversion
+      - name: Install junit2html
+        run: pip install junit2html
+
+      # Convert JUnit XML to HTML
+      - name: Convert JUnit XML to HTML
+        run: |
+          junit2html Backend/pytest-report.xml Backend/pytest-report.html
+
+      # Upload HTML test report artifact
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-html-report
+          path: Backend/pytest-report.html
+
       # Upload test report artifact
       - name: Upload test report
         uses: actions/upload-artifact@v4
