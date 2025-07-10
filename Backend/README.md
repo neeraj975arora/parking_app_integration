@@ -2,9 +2,7 @@
 
 This project is the complete backend for a smart parking system, including a REST API, PostgreSQL database, and Nginx reverse proxy, all containerized with Docker.
     
-## Features   
-  
-- **User Authentication:** Secure user registration and login using JWT.                   
+
 - **Hierarchical Parking Structure:** Full CRUD API for managing Parking Lots, Floors, Rows, and Slots.
 - **Real-time Slot Updates:** Dedicated endpoint for IoT devices (e.g., Raspberry Pi) to push slot status changes.
 - **API Documentation:** Interactive Swagger UI for exploring and testing the API.
