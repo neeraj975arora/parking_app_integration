@@ -66,13 +66,17 @@ jobs:
           fi
         working-directory: ./Backend
 
+      - name: Remove old htmlcov directory in container
+        run: docker compose exec -T app rm -rf /app/htmlcov
+        working-directory: ./Backend
+
       - name: Run tests with coverage and save debug log
         run: |
           docker compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
         working-directory: ./Backend
 
-      - name: Remove old htmlcov directory if it exists
-        run: rm -rf htmlcov
+      - name: Remove old htmlcov directory on host (ignore errors)
+        run: rm -rf htmlcov || true
         working-directory: ./Backend
 
       - name: Copy test report from container
