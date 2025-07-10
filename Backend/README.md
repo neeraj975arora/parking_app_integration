@@ -15,7 +15,7 @@ This project is the complete backend for a smart parking system, including a RES
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
-
+ 
 ## How to Run the Application
 
 Follow these steps to get the application running on your local machine.
