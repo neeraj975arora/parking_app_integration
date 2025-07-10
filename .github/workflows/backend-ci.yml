@@ -1,3 +1,5 @@
+# Backend CI workflow for Dockerized Flask app
+# Runs only when Backend/ changes, builds containers, runs tests, uploads artifacts
 name: Backend CI
 
 on:
@@ -38,10 +40,12 @@ jobs:
             echo "/dev/kvm does not exist"
           fi
 
+      # Build and start containers
       - name: Build and start containers
         run: docker compose up --build -d
         working-directory: ./Backend
 
+      # Wait for DB to be ready
       - name: Wait for DB to be ready
         run: |
           for i in {1..30}; do
@@ -52,10 +56,12 @@ jobs:
           done
         working-directory: ./Backend
 
+      # Run DB migrations
       - name: Run DB migrations
         run: docker compose exec -T app flask db upgrade
         working-directory: ./Backend
 
+      # Populate database if SQL file exists
       - name: Populate database (if SQL file exists)
         run: |
           if [ -f populate_parking_data.sql ]; then
@@ -66,49 +72,72 @@ jobs:
           fi
         working-directory: ./Backend
 
+      # Remove old htmlcov directory in container
       - name: Remove old htmlcov directory in container
         run: docker compose exec -T app rm -rf /app/htmlcov
         working-directory: ./Backend
 
+      # Run tests with coverage and save debug log
       - name: Run tests with coverage and save debug log
         run: |
           docker compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
         working-directory: ./Backend
 
+      # Remove old htmlcov directory on host (ignore errors)
       - name: Remove old htmlcov directory on host (ignore errors)
         run: rm -rf htmlcov || true
         working-directory: ./Backend
 
+      # Copy test report from container to temp, then move to avoid permission issues
       - name: Copy test report from container
-        run: docker cp $(docker compose ps -q app):/app/pytest-report.xml pytest-report.xml
+        run: |
+          mkdir -p temp_artifacts
+          docker cp $(docker compose ps -q app):/app/pytest-report.xml temp_artifacts/pytest-report.xml
+          mv temp_artifacts/pytest-report.xml pytest-report.xml
+          rmdir temp_artifacts
         working-directory: ./Backend
 
+      # Copy coverage report from container to temp, then move to avoid permission issues
       - name: Copy coverage report from container
-        run: docker cp $(docker compose ps -q app):/app/htmlcov htmlcov
+        run: |
+          mkdir -p temp_artifacts
+          docker cp $(docker compose ps -q app):/app/htmlcov temp_artifacts/htmlcov
+          rm -rf htmlcov
+          mv temp_artifacts/htmlcov ./
+          rmdir temp_artifacts
         working-directory: ./Backend
 
+      # Copy debug log from container to temp, then move to avoid permission issues
       - name: Copy debug log from container
-        run: docker cp $(docker compose ps -q app):/app/pytest-debug.log pytest-debug.log
+        run: |
+          mkdir -p temp_artifacts
+          docker cp $(docker compose ps -q app):/app/pytest-debug.log temp_artifacts/pytest-debug.log
+          mv temp_artifacts/pytest-debug.log pytest-debug.log
+          rmdir temp_artifacts
         working-directory: ./Backend
 
+      # Upload test report artifact
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
           name: pytest-report
           path: Backend/pytest-report.xml
 
+      # Upload coverage report artifact
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: htmlcov
           path: Backend/htmlcov/
 
+      # Upload debug log artifact
       - name: Upload debug log
         uses: actions/upload-artifact@v4
         with:
           name: pytest-debug-log
           path: Backend/pytest-debug.log
 
+      # Clean up containers after job
       - name: Clean up containers
         if: always()
         run: docker compose down -v
