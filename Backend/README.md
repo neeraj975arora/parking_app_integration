@@ -12,7 +12,7 @@ This project is the complete backend for a smart parking system, including a RES
 - **Automated Testing:** Includes a suite of `pytest` unit/integration tests and an end-to-end system test script.   
 
 ## Prerequisites
-
+   
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
  
