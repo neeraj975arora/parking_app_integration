@@ -23,42 +23,57 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Enable KVM for hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Check KVM device
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo "/dev/kvm exists"
+            ls -l /dev/kvm
+          else
+            echo "/dev/kvm does not exist"
+          fi
+
       - name: Build and start containers
-        run: docker-compose up --build -d
+        run: docker compose up --build -d
 
       - name: Wait for DB to be ready
         run: |
           for i in {1..30}; do
-            if docker-compose exec -T db pg_isready -U parking_user; then
+            if docker compose exec -T db pg_isready -U parking_user; then
               echo "Database is ready!"; break
             fi
             echo "Waiting for database..."; sleep 2
           done
 
       - name: Run DB migrations
-        run: docker-compose exec -T app flask db upgrade
+        run: docker compose exec -T app flask db upgrade
 
       - name: Populate database (if SQL file exists)
         run: |
           if [ -f Backend/populate_parking_data.sql ]; then
             docker cp Backend/populate_parking_data.sql backend-db-1:/populate_parking_data.sql
-            docker-compose exec -T db psql -U parking_user -d parking_db -f /populate_parking_data.sql
+            docker compose exec -T db psql -U parking_user -d parking_db -f /populate_parking_data.sql
           else
             echo "No populate_parking_data.sql found, skipping population."
           fi
 
       - name: Run tests with coverage and save debug log
         run: |
-          docker-compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
+          docker compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
 
       - name: Copy test report from container
-        run: docker cp $(docker-compose ps -q app):/app/pytest-report.xml Backend/pytest-report.xml
+        run: docker cp $(docker compose ps -q app):/app/pytest-report.xml Backend/pytest-report.xml
 
       - name: Copy coverage report from container
-        run: docker cp $(docker-compose ps -q app):/app/htmlcov Backend/htmlcov
+        run: docker cp $(docker compose ps -q app):/app/htmlcov Backend/htmlcov
 
       - name: Copy debug log from container
-        run: docker cp $(docker-compose ps -q app):/app/pytest-debug.log Backend/pytest-debug.log
+        run: docker cp $(docker compose ps -q app):/app/pytest-debug.log Backend/pytest-debug.log
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -80,4 +95,4 @@ jobs:
 
       - name: Clean up containers
         if: always()
-        run: docker-compose down -v 
+        run: docker compose down -v 
