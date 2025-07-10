@@ -85,7 +85,7 @@ jobs:
 
       # Remove old htmlcov directory on host (ignore errors)
       - name: Remove old htmlcov directory on host (ignore errors)
-        run: rm -rf htmlcov || true
+        run: sudo rm -rf htmlcov || true
         working-directory: ./Backend
 
       # Copy test report from container to temp, then move to avoid permission issues
