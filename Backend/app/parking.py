@@ -102,7 +102,40 @@ parking_bp = Blueprint('parking', __name__, url_prefix='/parking')
 @parking_bp.route('/lots', methods=['POST'])
 @role_required("user")
 def create_parking_lot():
-    """Create a new parking lot."""
+    """
+    Create a new parking lot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            address:
+              type: string
+            city:
+              type: string
+            landmark:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+            # ... (other fields as per ParkingLotDetailsSchema)
+    responses:
+      201:
+        description: Parking lot created
+      400:
+        description: Invalid input
+      403:
+        description: Forbidden
+    """
     data = request.get_json()
     try:
         new_lot = parking_lot_summary_schema.load(data)
@@ -115,14 +148,41 @@ def create_parking_lot():
 @parking_bp.route('/lots', methods=['GET'])
 @role_required("user")
 def get_parking_lots():
-    """Get a list of all parking lots (summary view)."""
+    """
+    Get a list of all parking lots (summary view).
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of parking lots
+    """
     lots = ParkingLotDetails.query.all()
     return jsonify(parking_lots_summary_schema.dump(lots))
 
 @parking_bp.route('/lots/<int:lot_id>', methods=['GET'])
 @role_required("user")
 def get_parking_lot(lot_id):
-    """Get detailed information about a specific parking lot, including nested floors, rows, and slots."""
+    """
+    Get detailed information about a specific parking lot, including nested floors, rows, and slots.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Parking lot details
+      404:
+        description: Parking lot not found
+    """
     lot = db.session.get(ParkingLotDetails, lot_id)
     if not lot:
         return jsonify({"error": "Parking lot not found"}), 404
@@ -131,7 +191,24 @@ def get_parking_lot(lot_id):
 @parking_bp.route('/lots/<int:lot_id>/stats', methods=['GET'])
 @role_required("user")
 def get_parking_lot_stats(lot_id):
-    """Get statistics (total, occupied, available slots) for a specific parking lot."""
+    """
+    Get statistics (total, occupied, available slots) for a specific parking lot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Parking lot statistics
+      404:
+        description: Parking lot not found
+    """
     if not db.session.get(ParkingLotDetails, lot_id):
         return jsonify({"error": "Parking lot not found"}), 404
 
@@ -150,7 +227,36 @@ def get_parking_lot_stats(lot_id):
 @parking_bp.route('/lots/<int:lot_id>', methods=['PUT'])
 @role_required("user")
 def update_parking_lot(lot_id):
-    """Update a parking lot's details."""
+    """
+    Update a parking lot's details.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            address:
+              type: string
+            # ... (other updatable fields)
+    responses:
+      200:
+        description: Parking lot updated
+      400:
+        description: Invalid input
+      404:
+        description: Parking lot not found
+    """
     lot = db.session.get(ParkingLotDetails, lot_id)
     if not lot:
         return jsonify({"error": "Parking lot not found"}), 404
@@ -166,7 +272,24 @@ def update_parking_lot(lot_id):
 @parking_bp.route('/lots/<int:lot_id>', methods=['DELETE'])
 @role_required("user")
 def delete_parking_lot(lot_id):
-    """Delete a parking lot."""
+    """
+    Delete a parking lot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Parking lot deleted
+      404:
+        description: Parking lot not found
+    """
     lot = db.session.get(ParkingLotDetails, lot_id)
     if not lot:
         return jsonify({"error": "Parking lot not found"}), 404
@@ -179,7 +302,33 @@ def delete_parking_lot(lot_id):
 @parking_bp.route('/lots/<int:lot_id>/floors', methods=['POST'])
 @role_required("user")
 def create_floor(lot_id):
-    """Create a new floor within a parking lot."""
+    """
+    Create a new floor within a parking lot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+    responses:
+      201:
+        description: Floor created
+      400:
+        description: Invalid input
+      404:
+        description: Parking lot not found
+    """
     if not db.session.get(ParkingLotDetails, lot_id):
         return jsonify({"error": "Parking lot not found"}), 404
         
@@ -197,7 +346,24 @@ def create_floor(lot_id):
 @parking_bp.route('/lots/<int:lot_id>/floors', methods=['GET'])
 @role_required("user")
 def get_floors_for_lot(lot_id):
-    """Get all floors for a specific parking lot."""
+    """
+    Get all floors for a specific parking lot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of floors
+      404:
+        description: Parking lot not found
+    """
     lot = db.session.get(ParkingLotDetails, lot_id)
     if not lot:
         return jsonify({"error": "Parking lot not found"}), 404
@@ -206,7 +372,24 @@ def get_floors_for_lot(lot_id):
 @parking_bp.route('/floors/<int:floor_id>', methods=['GET'])
 @role_required("user")
 def get_floor(floor_id):
-    """Get details of a specific floor."""
+    """
+    Get details of a specific floor.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: floor_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Floor details
+      404:
+        description: Floor not found
+    """
     floor = db.session.get(Floor, floor_id)
     if not floor:
         return jsonify({"error": "Floor not found"}), 404
@@ -215,7 +398,33 @@ def get_floor(floor_id):
 @parking_bp.route('/floors/<int:floor_id>', methods=['PUT'])
 @role_required("user")
 def update_floor(floor_id):
-    """Update a floor's details."""
+    """
+    Update a floor's details.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: floor_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+    responses:
+      200:
+        description: Floor updated
+      400:
+        description: Invalid input
+      404:
+        description: Floor not found
+    """
     floor = db.session.get(Floor, floor_id)
     if not floor:
         return jsonify({"error": "Floor not found"}), 404
@@ -232,7 +441,24 @@ def update_floor(floor_id):
 @parking_bp.route('/floors/<int:floor_id>', methods=['DELETE'])
 @role_required("user")
 def delete_floor(floor_id):
-    """Delete a floor."""
+    """
+    Delete a floor.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: floor_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Floor deleted
+      404:
+        description: Floor not found
+    """
     floor = db.session.get(Floor, floor_id)
     if not floor:
         return jsonify({"error": "Floor not found"}), 404
@@ -245,7 +471,33 @@ def delete_floor(floor_id):
 @parking_bp.route('/floors/<int:floor_id>/rows', methods=['POST'])
 @role_required("user")
 def create__row(floor_id):
-    """Create a new row within a floor."""
+    """
+    Create a new row within a floor.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: floor_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+    responses:
+      201:
+        description: Row created
+      400:
+        description: Invalid input
+      404:
+        description: Floor not found
+    """
     floor = db.session.get(Floor, floor_id)
     if not floor:
         return jsonify({"error": "Floor not found"}), 404
@@ -265,7 +517,24 @@ def create__row(floor_id):
 @parking_bp.route('/floors/<int:floor_id>/rows', methods=['GET'])
 @role_required("user")
 def get_rows_for_floor(floor_id):
-    """Get all rows for a specific floor."""
+    """
+    Get all rows for a specific floor.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: floor_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of rows
+      404:
+        description: Floor not found
+    """
     floor = db.session.get(Floor, floor_id)
     if not floor:
         return jsonify({"error": "Floor not found"}), 404
@@ -274,7 +543,24 @@ def get_rows_for_floor(floor_id):
 @parking_bp.route('/rows/<int:row_id>', methods=['GET'])
 @role_required("user")
 def get_row(row_id):
-    """Get details of a specific row."""
+    """
+    Get details of a specific row.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: row_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Row details
+      404:
+        description: Row not found
+    """
     row = db.session.get(Row, row_id)
     if not row:
         return jsonify({"error": "Row not found"}), 404
@@ -283,7 +569,33 @@ def get_row(row_id):
 @parking_bp.route('/rows/<int:row_id>', methods=['PUT'])
 @role_required("user")
 def update_row(row_id):
-    """Update a row's details."""
+    """
+    Update a row's details.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: row_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+    responses:
+      200:
+        description: Row updated
+      400:
+        description: Invalid input
+      404:
+        description: Row not found
+    """
     row = db.session.get(Row, row_id)
     if not row:
         return jsonify({"error": "Row not found"}), 404
@@ -300,7 +612,24 @@ def update_row(row_id):
 @parking_bp.route('/rows/<int:row_id>', methods=['DELETE'])
 @role_required("user")
 def delete_row(row_id):
-    """Delete a row."""
+    """
+    Delete a row.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: row_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Row deleted
+      404:
+        description: Row not found
+    """
     row = db.session.get(Row, row_id)
     if not row:
         return jsonify({"error": "Row not found"}), 404
@@ -313,7 +642,33 @@ def delete_row(row_id):
 @parking_bp.route('/rows/<int:row_id>/slots', methods=['POST'])
 @role_required("user")
 def create_slot(row_id):
-    """Create a new slot within a row."""
+    """
+    Create a new slot within a row.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: row_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+    responses:
+      201:
+        description: Slot created
+      400:
+        description: Invalid input
+      404:
+        description: Row not found
+    """
     row = db.session.get(Row, row_id)
     if not row:
         return jsonify({"error": "Row not found"}), 404
@@ -334,7 +689,24 @@ def create_slot(row_id):
 @parking_bp.route('/rows/<int:row_id>/slots', methods=['GET'])
 @role_required("user")
 def get_slots_for_row(row_id):
-    """Get all slots for a specific row."""
+    """
+    Get all slots for a specific row.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: row_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of slots
+      404:
+        description: Row not found
+    """
     row = db.session.get(Row, row_id)
     if not row:
         return jsonify({"error": "Row not found"}), 404
@@ -343,7 +715,24 @@ def get_slots_for_row(row_id):
 @parking_bp.route('/slots/<int:slot_id>', methods=['GET'])
 @role_required("user")
 def get_slot(slot_id):
-    """Get details of a specific slot."""
+    """
+    Get details of a specific slot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: slot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Slot details
+      404:
+        description: Slot not found
+    """
     slot = db.session.get(Slot, slot_id)
     if not slot:
         return jsonify({"error": "Slot not found"}), 404
@@ -352,7 +741,35 @@ def get_slot(slot_id):
 @parking_bp.route('/slots/<int:slot_id>', methods=['PUT'])
 @role_required("user")
 def update_slot(slot_id):
-    """Update a slot's details."""
+    """
+    Update a slot's details.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: slot_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            status:
+              type: integer
+    responses:
+      200:
+        description: Slot updated
+      400:
+        description: Invalid input
+      404:
+        description: Slot not found
+    """
     slot = db.session.get(Slot, slot_id)
     if not slot:
         return jsonify({"error": "Slot not found"}), 404
@@ -369,7 +786,24 @@ def update_slot(slot_id):
 @parking_bp.route('/slots/<int:slot_id>', methods=['DELETE'])
 @role_required("user")
 def delete_slot(slot_id):
-    """Delete a slot."""
+    """
+    Delete a slot.
+    ---
+    tags:
+      - Parking
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: slot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Slot deleted
+      404:
+        description: Slot not found
+    """
     slot = db.session.get(Slot, slot_id)
     if not slot:
         return jsonify({"error": "Slot not found"}), 404

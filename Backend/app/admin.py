@@ -53,6 +53,36 @@ def role_required(required_role):
 @admin_bp.route('/assign_lot', methods=['POST'])
 @role_required("super_admin")
 def assign_lot_to_admin():
+    """
+    Assign a parking lot to an admin
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Assign a parking lot to an admin.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            admin_id:
+              type: integer
+            parking_lot_id:
+              type: integer
+    responses:
+      201:
+        description: Parking lot assigned to admin
+      400:
+        description: Invalid admin or parking lot
+      409:
+        description: Parking lot already assigned
+    security:
+      - Bearer: []
+    """
     data = request.get_json()
     admin_id = data.get('admin_id')
     lot_id = data.get('parking_lot_id')
@@ -73,6 +103,34 @@ def assign_lot_to_admin():
 @admin_bp.route('/remove_assignment', methods=['DELETE'])
 @role_required("super_admin")
 def remove_assignment():
+    """
+    Remove admin-lot assignment
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Remove admin-lot assignment.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            admin_id:
+              type: integer
+            parking_lot_id:
+              type: integer
+    responses:
+      200:
+        description: Assignment removed
+      404:
+        description: Assignment not found
+    security:
+      - Bearer: []
+    """
     data = request.get_json()
     admin_id = data.get('admin_id')
     lot_id = data.get('parking_lot_id')
@@ -86,6 +144,26 @@ def remove_assignment():
 @admin_bp.route('/admin_lots/<int:admin_id>', methods=['GET'])
 @role_required("admin")
 def get_lots_for_admin(admin_id):
+    """
+    Get all lot IDs assigned to an admin
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Get all lot IDs assigned to an admin.
+    parameters:
+      - in: path
+        name: admin_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of parking lot IDs for admin
+    security:
+      - Bearer: []
+    """
     assignments = AdminParkingLot.query.filter_by(admin_id=admin_id).all()
     lots = [a.parking_lot_id for a in assignments]
     return jsonify({'admin_id': admin_id, 'parking_lot_ids': lots}), 200
@@ -93,6 +171,26 @@ def get_lots_for_admin(admin_id):
 @admin_bp.route('/lot_admins/<int:lot_id>', methods=['GET'])
 @role_required("admin")
 def get_admins_for_lot(lot_id):
+    """
+    Get all admin IDs assigned to a parking lot
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Get all admin IDs assigned to a parking lot.
+    parameters:
+      - in: path
+        name: lot_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of admin IDs for parking lot
+    security:
+      - Bearer: []
+    """
     assignments = AdminParkingLot.query.filter_by(parking_lot_id=lot_id).all()
     admins = [a.admin_id for a in assignments]
     return jsonify({'parking_lot_id': lot_id, 'admin_ids': admins}), 200
@@ -100,6 +198,49 @@ def get_admins_for_lot(lot_id):
 @admin_bp.route('/session/checkin', methods=['POST'])
 @role_required("admin")
 def vehicle_checkin():
+    """
+    Admin Vehicle Check-In
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Admin Vehicle Check-In.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            vehicle_reg_no:
+              type: string
+            slot_id:
+              type: integer
+            lot_id:
+              type: integer
+            vehicle_type:
+              type: string
+    responses:
+      200:
+        description: Vehicle checked in successfully
+        schema:
+          type: object
+          properties:
+            msg:
+              type: string
+            session_id:
+              type: string
+      400:
+        description: Missing required fields
+      404:
+        description: Slot or lot not found
+      409:
+        description: Slot is already occupied or vehicle already checked in
+    security:
+      - Bearer: []
+    """
     data = request.get_json()
     vehicle_reg_no = data.get('vehicle_reg_no')
     slot_id = data.get('slot_id')
@@ -137,6 +278,43 @@ def vehicle_checkin():
 @admin_bp.route('/session/checkout', methods=['POST'])
 @role_required("admin")
 def vehicle_checkout():
+    """
+    Admin Vehicle Check-Out
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Admin Vehicle Check-Out.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            vehicle_reg_no:
+              type: string
+    responses:
+      200:
+        description: Vehicle checked out successfully
+        schema:
+          type: object
+          properties:
+            amount_paid:
+              type: number
+            duration_hours:
+              type: integer
+            checkout_time:
+              type: string
+      400:
+        description: Missing vehicle_reg_no or no admin assigned
+      404:
+        description: No active session found
+    security:
+      - Bearer: []
+    """
     data = request.get_json()
     vehicle_reg_no = data.get('vehicle_reg_no')
     if not vehicle_reg_no:
@@ -205,6 +383,46 @@ def vehicle_checkout():
 @admin_bp.route('/closure', methods=['POST'])
 @role_required("admin")
 def submit_daily_closure():
+    """
+    Submit daily closure/payment
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Submit daily closure/payment.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            date:
+              type: string
+              description: YYYY-MM-DD
+            payment_made:
+              type: number
+    responses:
+      201:
+        description: Closure submitted/updated
+        schema:
+          type: object
+          properties:
+            opening_balance:
+              type: number
+            today_collection:
+              type: number
+            payment_made:
+              type: number
+            closing_balance:
+              type: number
+      400:
+        description: Invalid date format
+    security:
+      - Bearer: []
+    """
     payload = decode_token(request.headers.get("Authorization").split(" ")[1])
     admin_id = payload["user_id"]
     data = request.get_json()
@@ -249,6 +467,30 @@ def submit_daily_closure():
 @admin_bp.route('/closure', methods=['GET'])
 @role_required("admin")
 def get_closure_entries():
+    """
+    Get closure ledger entries for admin
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Get closure ledger entries for admin.
+    parameters:
+      - in: query
+        name: start_date
+        type: string
+        required: false
+      - in: query
+        name: end_date
+        type: string
+        required: false
+    responses:
+      200:
+        description: List of closure ledger entries
+    security:
+      - Bearer: []
+    """
     payload = decode_token(request.headers.get("Authorization").split(" ")[1])
     admin_id = payload["user_id"]
     start_date = request.args.get("start_date")
@@ -278,3 +520,84 @@ def get_closure_entries():
         for e in entries
     ]
     return jsonify(result), 200 
+
+@admin_bp.route('/register_admin', methods=['POST'])
+@role_required("super_admin")
+def register_admin():
+    """
+    Register a new admin user (super_admin only).
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      This endpoint allows a super_admin to register a new admin user. Requires a valid JWT token with super_admin role.
+      
+      The `access_token` must be obtained from `/auth/login` and included in the `Authorization` header as shown below:
+      
+      Example request:
+      ```
+      POST /admin/register_admin
+      Authorization: Bearer <access_token>
+      Content-Type: application/json
+      
+      {
+        "user_name": "Admin User",
+        "user_email": "admin@example.com",
+        "user_password": "adminpass",
+        "user_phone_no": "9876543210",
+        "user_address": "HQ"
+      }
+      ```
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - user_name
+            - user_email
+            - user_password
+            - user_phone_no
+          properties:
+            user_name:
+              type: string
+            user_email:
+              type: string
+            user_password:
+              type: string
+            user_phone_no:
+              type: string
+            user_address:
+              type: string
+    responses:
+      201:
+        description: Admin registered successfully
+      400:
+        description: Invalid input
+      401:
+        description: Missing or invalid JWT
+      403:
+        description: Only super_admins can register admins
+      409:
+        description: User with this email or phone already exists
+    """
+    data = request.get_json()
+    if User.query.filter_by(user_email=data.get('user_email')).first():
+        return jsonify({"msg": "User with this email already exists"}), 409
+    if User.query.filter_by(user_phone_no=data.get('user_phone_no')).first():
+        return jsonify({"msg": "User with this phone number already exists"}), 409
+    new_user = User(
+        user_name=data.get('user_name'),
+        user_email=data.get('user_email'),
+        user_phone_no=data.get('user_phone_no'),
+        user_address=data.get('user_address'),
+        role='admin'
+    )
+    new_user.set_password(data.get('user_password'))
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"msg": "Admin registered successfully", "role": new_user.role}), 201 
