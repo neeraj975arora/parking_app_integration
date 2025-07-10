@@ -9,7 +9,7 @@ This project is the complete backend for a smart parking system, including a RES
 - **Real-time Slot Updates:** Dedicated endpoint for IoT devices (e.g., Raspberry Pi) to push slot status changes.
 - **API Documentation:** Interactive Swagger UI for exploring and testing the API.
 - **Containerized:** Fully containerized with Docker and Docker Compose for easy setup and deployment.
-- **Automated Testing:** Includes a suite of `pytest` unit/integration tests and an end-to-end system test script.
+- **Automated Testing:** Includes a suite of `pytest` unit/integration tests and an end-to-end system test script.   
 
 ## Prerequisites
 
