@@ -11,7 +11,7 @@ This project is the complete backend for a smart parking system, including a RES
 - **Containerized:** Fully containerized with Docker and Docker Compose for easy setup and deployment.
 - **Automated Testing:** Includes a suite of `pytest` unit/integration tests and an end-to-end system test script.   
 
-## Prerequisites
+## Prerequisites   
    
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
