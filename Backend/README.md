@@ -48,7 +48,7 @@ docker-compose up --build -d
 ```
 
 ### 3. Initialize the Database
-
+   
 The first time you start the application, you need to create the database tables from the SQLAlchemy models. The following commands use Flask-Migrate to do this.
 
 Run these commands one by one:
