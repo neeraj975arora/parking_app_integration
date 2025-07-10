@@ -1,4 +1,4 @@
-# Smart Parking System - Backend
+# Smart Parking System - Backend    
 
 This project is the complete backend for a smart parking system, including a REST API, PostgreSQL database, and Nginx reverse proxy, all containerized with Docker.
 
