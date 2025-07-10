@@ -4,6 +4,8 @@
 |--------|-----------------------------|---------------------------------------------|-----------|
 | POST   | /api/v1/slots/update_status | Update the status of a parking slot (IoT)   | API Key   |
 
+## API_KEY = "super-secret-rpi-key"
+## headers={"X-API-KEY": API_KEY}
 #### Example JSON for /api/v1/slots/update_status
 ```json
 {

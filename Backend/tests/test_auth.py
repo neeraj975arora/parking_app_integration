@@ -64,7 +64,7 @@ def test_user_registration_with_role(client):
     data = json.loads(response.data)
     assert data['role'] == 'user'
 
-    # Attempt to register as admin without secret (should still be user)
+    # Attempt to register as admin without secret (should be forbidden)
     response = client.post('/auth/register',
         data=json.dumps(dict(
             user_name='fakeadmin',
@@ -74,11 +74,9 @@ def test_user_registration_with_role(client):
             role='admin'
         )),
         content_type='application/json')
-    assert response.status_code == 201
-    data = json.loads(response.data)
-    assert data['role'] == 'user'
+    assert response.status_code == 403
 
-    # Register as admin with correct secret
+    # Attempt to register as admin with correct secret (should also be forbidden)
     response = client.post('/auth/register',
         data=json.dumps(dict(
             user_name='realadmin',
@@ -89,9 +87,7 @@ def test_user_registration_with_role(client):
             admin_secret='SUPER_SECRET_ADMIN_KEY'
         )),
         content_type='application/json')
-    assert response.status_code == 201
-    data = json.loads(response.data)
-    assert data['role'] == 'admin'
+    assert response.status_code == 403
 
 def test_login_returns_role(client):
     """
