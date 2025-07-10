@@ -71,6 +71,10 @@ jobs:
           docker compose exec -T app pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml | tee pytest-debug.log
         working-directory: ./Backend
 
+      - name: Remove old htmlcov directory if it exists
+        run: rm -rf htmlcov
+        working-directory: ./Backend
+
       - name: Copy test report from container
         run: docker cp $(docker compose ps -q app):/app/pytest-report.xml pytest-report.xml
         working-directory: ./Backend
