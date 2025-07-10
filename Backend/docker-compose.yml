@@ -7,7 +7,7 @@ services:
       - .:/app
     ports:
       - "5000:5000"
-    networks:
+    networks:  
       - backend
     depends_on:
       db:
