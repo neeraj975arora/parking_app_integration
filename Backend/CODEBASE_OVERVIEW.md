@@ -5,7 +5,7 @@ This document provides a high-level overview of the backend codebase for the Sma
 ---
 
 ## Project Structure
-
+ 
 ```
 Backend/
 ├── app/                  # Main application code

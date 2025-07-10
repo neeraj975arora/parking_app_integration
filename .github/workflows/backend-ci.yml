@@ -1,0 +1,114 @@
+# Backend CI workflow for Dockerized Flask app
+# Runs only when Backend/ changes, builds containers, runs tests, uploads artifacts
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'Backend/**'
+  pull_request:
+    paths:
+      - 'Backend/**'
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python (for scripts if needed)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Enable KVM for hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Check KVM device
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo "/dev/kvm exists"
+            ls -l /dev/kvm
+          else
+            echo "/dev/kvm does not exist"
+          fi
+
+      # Build and start containers
+      - name: Build and start containers
+        run: docker compose up --build -d
+        working-directory: ./Backend
+
+      # Wait for DB to be ready
+      - name: Wait for DB to be ready
+        run: |
+          for i in {1..30}; do
+            if docker compose exec -T db pg_isready -U parking_user; then
+              echo "Database is ready!"; break
+            fi
+            echo "Waiting for database..."; sleep 2
+          done
+        working-directory: ./Backend
+
+      # Run DB migrations
+      - name: Run DB migrations
+        run: docker compose exec -T app flask db upgrade
+        working-directory: ./Backend
+
+      # Populate database if SQL file exists
+      - name: Populate database (if SQL file exists)
+        run: |
+          if [ -f populate_parking_data.sql ]; then
+            docker cp populate_parking_data.sql backend-db-1:/populate_parking_data.sql
+            docker compose exec -T db psql -U parking_user -d parking_db -f /populate_parking_data.sql
+          else
+            echo "No populate_parking_data.sql found, skipping population."
+          fi
+        working-directory: ./Backend
+
+      # Remove old htmlcov directory in container
+      - name: Remove old htmlcov directory in container
+        run: docker compose exec -T app rm -rf /app/htmlcov
+        working-directory: ./Backend
+
+      # Run tests with coverage and save debug log
+      - name: Run tests with coverage and save debug log
+        run: |
+          docker compose run --rm app bash -c "pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml --html=pytest-report.html | tee /app/pytest-debug.log"
+        working-directory: ./Backend
+
+      # Copy HTML test report from container
+      - name: Copy HTML test report from container
+        run: |
+          mkdir -p temp_artifacts
+          container_id=$(docker ps -a --filter "name=backend-app-*" --format "{{.ID}}" | head -n 1)
+          docker cp "$container_id":/app/pytest-report.html temp_artifacts/pytest-report.html || echo "HTML report not found"
+          mv temp_artifacts/pytest-report.html ./pytest-report.html || true
+          rmdir temp_artifacts || true
+        working-directory: ./Backend
+
+      # Upload coverage report artifact
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: htmlcov
+          path: Backend/htmlcov/
+
+      # Upload debug log artifact
+      - name: Upload debug log
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-debug-log
+          path: Backend/pytest-debug.log
+
+      # Clean up containers after job
+      - name: Clean up containers
+        if: always()
+        run: docker compose down -v
+        working-directory: ./Backend 
