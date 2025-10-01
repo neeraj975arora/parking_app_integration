@@ -9,39 +9,30 @@ This monorepo contains the full-stack solution for the smart parking system, inc
 
 We follow a **monorepo strategy** with clearly separated folders for each major component:
 
+## Repository Structure
 ```
 parking_app_integration/
-├── vision-parking(user_android_app)/           # Android mobile app
-│   ├── app/
-│   ├── tests/                  # Appium / pytest
-│   └── build.gradle
-
-├── Backend(cloud_server)/              # Flask/Django/FastAPI backend
-│   ├── src/
-│   ├── Dockerfile
-│   └── docker-compose.yml
-
-├── Parking-Server(parking_detection system)/         # ML service   Flask/FastAPI
-│   ├── models/
-│   └── Dockerfile
-
-├── shared/                    # Optional: common models/config
-│   ├── api_contracts/
-│   └── utils/
-
-├── .github/
-│   └── workflows/
-│       ├── android-e2e.yml        # Android E2E Tests with Backend
-│       ├── backend-ci.yml         # Backend CI
-│       └── admin-app-ci.yml       # Admin react app CI
-│       ├── ml.yml                 # ML service CI
-│       └── e2e.yml                # Full stack E2E tests
-
-├── e2e-artifacts/             # Stores test logs/results
-├── README.md
-└── Makefile                   # CLI to build/run/test all components
+├── admin_react_app/           # React Admin Dashboard (Frontend)
+│   ├── src/                   # Source code
+│   ├── public/                # Static assets
+│   ├── tests/                 # Test files
+│   └── package.json           # Dependencies
+├── Backend/                   # Flask API Server
+│   ├── app/                   # Application code
+│   ├── tests/                 # Test files
+│   ├── nginx/                 # Nginx configuration
+│   └── docker-compose.yml     # Docker setup
+├── Vision-Parking/            # Android Mobile App
+│   ├── app/                   # Android source
+│   ├── tests/                 # Test files
+│   └── build.gradle.kts       # Build configuration
+├── Parking-Server/            # Computer Vision Server
+│   ├── model/                 # ML models
+│   ├── static/                # Static files
+│   └── templates/             # HTML templates
+├── REST_API_Specs/            # API Documentation
+└── README.md                  # Project documentation
 ```
-
 ---
 
 ## 🤖 GitHub Actions Setup
