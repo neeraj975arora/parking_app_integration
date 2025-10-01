@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flasgger import Swagger
+from flask_cors import CORS  # Add this import
 from .config import config_by_name
 
 # Initialize extensions
@@ -25,11 +26,16 @@ def create_app(config_name='default'):
     # Load the configuration
     app.config.from_object(config_by_name[config_name])
     
+    # Initialize CORS with the app - allow all origins for development
+    CORS(app, origins=['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:8080'], 
+         allow_headers=['Content-Type', 'Authorization'], 
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+    
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
     ma.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db, directory='app/migrations')
     swagger.init_app(app)
     
     # Register blueprints here
@@ -48,4 +54,4 @@ def create_app(config_name='default'):
     from .admin import admin_bp
     app.register_blueprint(admin_bp)
     
-    return app 
+    return app

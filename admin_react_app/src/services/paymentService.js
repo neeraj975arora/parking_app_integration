@@ -34,8 +34,8 @@ class PaymentService {
     const baseRate = this.getVehicleRate(session.vehicle_type);
     const duration = session.duration_hrs || 0;
     const estimated = duration * baseRate;
-    const amount = typeof session.total_amount === 'number' && session.total_amount > 0
-      ? session.total_amount
+    const amount = typeof session.amount_paid === 'number' && session.amount_paid > 0
+      ? session.amount_paid
       : Math.round(estimated * 100) / 100;
 
     // Determine payment status

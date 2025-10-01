@@ -5,60 +5,341 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Parking API</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        .container { background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 20px 40px; }
-        h1 { color: #0056b3; }
-        a { color: #0056b3; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 0 20px; 
+            background-color: #f5f5f5;
+        }
+        .container { 
+            background-color: #ffffff; 
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            padding: 30px 40px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #0056b3; 
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        a { 
+            color: #0056b3; 
+            text-decoration: none; 
+            font-weight: 500;
+        }
+        a:hover { 
+            text-decoration: underline; 
+        }
+        .footer { 
+            margin-top: 30px; 
+            font-size: 0.9em; 
+            color: #777; 
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #0056b3;
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.1);
+        }
+        .form-group input[type="password"] {
+            font-family: monospace;
+        }
+        .submit-btn {
+            background-color: #0056b3;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        .submit-btn:hover {
+            background-color: #004494;
+        }
+        .submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .secret-field {
+            position: relative;
+        }
+        .secret-field input {
+            padding-right: 50px;
+        }
+        .secret-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+        }
+        .secret-toggle:hover {
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Welcome to the Smart Parking System API</h1>
-        <p>The backend services are up and running.</p>
-        <p>You can find the interactive API documentation (Swagger UI) here:</p>
-        <p><a href="/apidocs">/apidocs</a></p>
+        
+        <div class="info-box">
+            <h3>🚀 System Status</h3>
+            <p>The backend services are up and running.</p>
+            <p>You can find the interactive API documentation (Swagger UI) here: <a href="/apidocs">/apidocs</a></p>
+        </div>
+
         <hr>
-        <h2>Register Super Admin</h2>
-        <form id="superAdminForm">
-            <label>Name:<br><input type="text" name="user_name" required></label><br><br>
-            <label>Email:<br><input type="email" name="user_email" required></label><br><br>
-            <label>Password:<br><input type="password" name="user_password" required></label><br><br>
-            <label>Phone Number:<br><input type="text" name="user_phone_no" required></label><br><br>
-            <label>Address:<br><input type="text" name="user_address"></label><br><br>
-            <label>Super Admin Secret:<br><input type="password" name="super_admin_secret" required></label><br><br>
-            <button type="submit">Register Super Admin</button>
-        </form>
-        <div id="superAdminMsg" style="margin-top:10px;"></div>
+        
+        <h2>🔐 Super Admin Registration</h2>
+        <div class="info-box">
+            <h3>⚠️ Important Information</h3>
+            <p><strong>This form is for creating the initial Super Admin account only.</strong></p>
+            <p>• The Super Admin has full system privileges including creating other admins</p>
+            <p>• This registration can only be performed once during initial system setup</p>
+            <p>• Use the secret key: <code>SUPER_SECRET_SUPER_ADMIN_KEY</code></p>
+        </div>
+
+        <div id="registrationForm" style="display: none;">
+            <form id="superAdminForm">
+                <div class="form-group">
+                    <label for="user_name">Full Name *</label>
+                    <input type="text" id="user_name" name="user_name" required placeholder="Enter your full name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_email">Email Address *</label>
+                    <input type="email" id="user_email" name="user_email" required placeholder="Enter your email address">
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_password">Password *</label>
+                    <input type="password" id="user_password" name="user_password" required placeholder="Enter a strong password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_phone_no">Phone Number *</label>
+                    <input type="tel" id="user_phone_no" name="user_phone_no" required placeholder="Enter your phone number">
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_address">Address</label>
+                    <input type="text" id="user_address" name="user_address" placeholder="Enter your address (optional)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="super_admin_secret">Super Admin Secret *</label>
+                    <div class="secret-field">
+                        <input type="password" id="super_admin_secret" name="super_admin_secret" required 
+                               placeholder="Enter: SUPER_SECRET_SUPER_ADMIN_KEY">
+                        <button type="button" class="secret-toggle" onclick="toggleSecret()">👁️</button>
+                    </div>
+                </div>
+
+                <input type="hidden" name="role" value="super_admin">
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Register Super Admin
+                </button>
+            </form>
+        </div>
+
+        <div id="superAdminExists" style="display: none;">
+            <div class="info-box" style="background-color: #d4edda; border-color: #c3e6cb;">
+                <h3>✅ Super Admin Already Exists</h3>
+                <p>A Super Admin account has already been created for this system.</p>
+                <p>• Use the existing Super Admin account to log in and manage the system</p>
+                <p>• Additional Super Admin accounts cannot be created through this interface</p>
+                <p>• To access the system, go to: <a href="/auth/login">Login Page</a></p>
+            </div>
+        </div>
+
+        <div id="message" class="message" style="display: none;"></div>
+
         <script>
+        // Check super admin status when page loads
+        async function checkSuperAdminStatus() {
+            try {
+                const response = await fetch('/auth/super-admin-status');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.super_admin_exists) {
+                        document.getElementById('registrationForm').style.display = 'none';
+                        document.getElementById('superAdminExists').style.display = 'block';
+                    } else {
+                        document.getElementById('registrationForm').style.display = 'block';
+                        document.getElementById('superAdminExists').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking super admin status:', error);
+                // Show form by default if check fails
+                document.getElementById('registrationForm').style.display = 'block';
+            }
+        }
+
+        function toggleSecret() {
+            const secretInput = document.getElementById('super_admin_secret');
+            const toggleBtn = document.querySelector('.secret-toggle');
+            
+            if (secretInput.type === 'password') {
+                secretInput.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                secretInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function setLoading(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+            if (loading) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ Processing...';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Register Super Admin';
+            }
+        }
+
         document.getElementById('superAdminForm').onsubmit = async function(e) {
             e.preventDefault();
+            
+            setLoading(true);
+            
             const form = e.target;
-            const data = {
-                user_name: form.user_name.value,
-                user_email: form.user_email.value,
+            const formData = {
+                user_name: form.user_name.value.trim(),
+                user_email: form.user_email.value.trim(),
                 user_password: form.user_password.value,
-                user_phone_no: form.user_phone_no.value,
-                user_address: form.user_address.value,
+                user_phone_no: form.user_phone_no.value.trim(),
+                user_address: form.user_address.value.trim(),
+                role: 'super_admin',
                 super_admin_secret: form.super_admin_secret.value
             };
-            const res = await fetch('/auth/register_super_admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const msg = document.getElementById('superAdminMsg');
-            const result = await res.json();
-            if (res.ok) {
-                msg.style.color = 'green';
-                msg.textContent = result.msg + ' (Role: ' + result.role + ')';
-            } else {
-                msg.style.color = 'red';
-                msg.textContent = result.msg || 'Registration failed.';
+
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`✅ ${result.msg} (Role: ${result.role})`, 'success');
+                    // Clear form on success
+                    form.reset();
+                    // Recheck status to hide form
+                    setTimeout(checkSuperAdminStatus, 1000);
+                } else {
+                    showMessage(`❌ ${result.msg || 'Registration failed'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showMessage('❌ Network error. Please try again.', 'error');
+            } finally {
+                setLoading(false);
             }
         };
+
+        // Auto-fill the secret for convenience during development
+        document.getElementById('super_admin_secret').addEventListener('focus', function() {
+            if (!this.value) {
+                this.value = 'SUPER_SECRET_SUPER_ADMIN_KEY';
+            }
+        });
+
+        // Check status when page loads
+        document.addEventListener('DOMContentLoaded', checkSuperAdminStatus);
         </script>
+
         <p class="footer">This page is served by the Flask application and proxied by Nginx.</p>
     </div>
 </body>

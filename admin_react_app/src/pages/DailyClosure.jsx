@@ -41,18 +41,27 @@ const DailyClosure = () => {
       setLoading(true);
       setError(null);
       
+      // Use the total_due endpoint to get today's data
       const data = await closureService.getClosureData();
       setClosureData(data);
       
-      // Calculate metrics using service method
-      const calculatedMetrics = closureService.calculateClosureMetrics(data);
+      // Calculate metrics from the API response
+      const calculatedMetrics = {
+        outstandingAmount: data.outstanding_amount || 0,
+        todayCollection: data.today_collection || 0,
+        totalDue: (data.outstanding_amount || 0) + (data.today_collection || 0),
+        amountPaid: 0, // Will be updated after payment
+        newOutstanding: (data.outstanding_amount || 0) + (data.today_collection || 0),
+        status: 'pending',
+        date: data.date || new Date().toISOString().split('T')[0]
+      };
+      
       setMetrics(calculatedMetrics);
       
       // Pre-fill payment amount with total due
       setPaymentAmount(calculatedMetrics.totalDue.toString());
     } catch (err) {
-      const errorMessage = closureService.handleClosureError(err);
-      setError(errorMessage);
+      setError(err.message || 'Failed to fetch closure data');
       console.error('Failed to fetch closure data:', err);
     } finally {
       setLoading(false);
@@ -92,8 +101,17 @@ const DailyClosure = () => {
       // Call API to finalize closure
       const result = await closureService.finalizeClosureData(validation.value, metrics.date);
       
-      // Update metrics with new data using service calculation
-      const updatedMetrics = closureService.calculateClosureMetrics(result);
+      // Update metrics with the API response
+      const updatedMetrics = {
+        outstandingAmount: result.opening_balance || 0,
+        todayCollection: result.today_collection || 0,
+        totalDue: (result.opening_balance || 0) + (result.today_collection || 0),
+        amountPaid: result.payment_made || 0,
+        newOutstanding: result.closing_balance || 0,
+        status: result.payment_made > 0 ? 'completed' : 'pending',
+        date: metrics.date
+      };
+      
       setMetrics(updatedMetrics);
       
       // Update closure data
@@ -106,8 +124,7 @@ const DailyClosure = () => {
       console.log('Closure finalized successfully');
       
     } catch (err) {
-      const errorMessage = closureService.handleClosureError(err);
-      setValidationError(errorMessage);
+      setValidationError(err.message || 'Failed to finalize closure');
       console.error('Failed to finalize closure:', err);
     } finally {
       setFinalizing(false);
@@ -143,23 +160,7 @@ const DailyClosure = () => {
           </div>
         </div>
 
-        {/* Mock Data Warning */}
-        {closureData?.isMockData && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Demo Mode:</strong> Using mock data as the API is not available.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* MOCK DATA WARNING REMOVED - Using real backend API only */}
 
         {/* Loading State */}
         {loading ? (

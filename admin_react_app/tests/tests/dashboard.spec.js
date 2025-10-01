@@ -26,17 +26,6 @@ test.describe('Dashboard Page Tests', () => {
     await page.waitForTimeout(2000);
   });
 
-  test.afterEach(async ({ page }) => {
-    // Clear any network routing and browser storage to avoid cross-test leakage
-    try {
-      await page.unroute('**');
-    } catch {}
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
-  });
-
   test.describe('Page Elements', () => {
     test('should display dashboard page elements', async () => {
       await expect(dashboardPage.pageTitle).toBeVisible();
@@ -347,12 +336,134 @@ test.describe('Dashboard Page Tests', () => {
   });
 
   test.describe('Role-Based Access', () => {
-    // Removed role-based regular admin test to avoid cross-context flakiness
+    test('should show admin-specific actions for super admin', async () => {
+      const isSuperAdmin = await dashboardPage.isSuperAdmin();
+      expect(isSuperAdmin).toBe(true);
+      
+      await expect(dashboardPage.adminManagementAction).toBeVisible();
+      await expect(dashboardPage.settingsAction).toBeVisible();
+    });
+
+    test('should hide admin-specific actions for regular admin', async ({ browser }) => {
+      // Create a new context and page for this test to avoid authentication conflicts
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      
+      // Create fresh page objects for this test
+      const freshLoginPage = new LoginPage(page);
+      const freshDashboardPage = new DashboardPage(page);
+      
+      // Navigate to login page
+      await freshLoginPage.navigateToLogin();
+      
+      // Login as regular admin
+      await freshLoginPage.loginAsAdmin();
+      await freshLoginPage.waitForLoginSuccess();
+      
+      // Navigate to dashboard
+      await freshDashboardPage.navigateToDashboard();
+      await freshDashboardPage.waitForDashboardLoad();
+      
+      // Verify user role is admin (not super admin)
+      const isAdmin = await freshDashboardPage.isAdmin();
+      expect(isAdmin).toBe(true);
+      
+      const isSuperAdmin = await freshDashboardPage.isSuperAdmin();
+      expect(isSuperAdmin).toBe(false);
+      
+      // Verify admin-specific actions are hidden
+      await expect(freshDashboardPage.adminManagementAction).not.toBeVisible();
+      await expect(freshDashboardPage.settingsAction).not.toBeVisible();
+      
+      // Verify common actions are still visible
+      await expect(freshDashboardPage.liveSessionsAction).toBeVisible();
+      await expect(freshDashboardPage.paymentCollectionAction).toBeVisible();
+      await expect(freshDashboardPage.dailyClosureAction).toBeVisible();
+      
+      // Clean up
+      await context.close();
+    });
   });
 
-  // Removed responsive design checks from dashboard
+  test.describe('Responsive Design', () => {
+    test('should adapt to mobile viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 });
+      
+      // Wait for page to load and adapt
+      await page.waitForTimeout(1000);
+      
+      await expect(dashboardPage.pageTitle).toBeVisible();
+      await expect(dashboardPage.quickActionsSection).toBeVisible();
+      await expect(dashboardPage.performanceMetricsSection).toBeVisible();
+    });
 
-  // Removed data refresh navigation test
+    test('should adapt to tablet viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 768, height: 1024 });
+      
+      // Wait for page to load and adapt
+      await page.waitForTimeout(1000);
+      
+      await expect(dashboardPage.pageTitle).toBeVisible();
+      await expect(dashboardPage.quickActionsSection).toBeVisible();
+      await expect(dashboardPage.performanceMetricsSection).toBeVisible();
+    });
 
-  // Removed performance tests
+    test('should adapt to desktop viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      
+      // Wait for page to load and adapt
+      await page.waitForTimeout(1000);
+      
+      await expect(dashboardPage.pageTitle).toBeVisible();
+      await expect(dashboardPage.quickActionsSection).toBeVisible();
+      await expect(dashboardPage.performanceMetricsSection).toBeVisible();
+    });
+  });
+
+  test.describe('Data Refresh', () => {
+    test('should refresh data when navigating back to dashboard', async ({ page }) => {
+      // Navigate away from dashboard
+      await dashboardPage.clickLiveSessions();
+      await expect(page).toHaveURL(/.*live-sessions/);
+      
+      // Navigate back to dashboard
+      await page.goto('http://localhost:5173/dashboard');
+      await dashboardPage.waitForDashboardLoad();
+      
+      // Dashboard should be loaded with fresh data
+      await expect(dashboardPage.pageTitle).toBeVisible();
+      await expect(dashboardPage.performanceMetricsSection).toBeVisible();
+    });
+  });
+
+  test.describe('Performance', () => {
+    test('should load dashboard within acceptable time', async ({ page }) => {
+      const startTime = Date.now();
+      
+      await dashboardPage.navigateToDashboard();
+      await dashboardPage.waitForKPICards();
+      
+      const loadTime = Date.now() - startTime;
+      
+      // Dashboard should load within 10 seconds (increased timeout for CI)
+      expect(loadTime).toBeLessThan(10000);
+    });
+
+    test('should not have memory leaks on repeated navigation', async ({ page }) => {
+      // Navigate to dashboard multiple times
+      for (let i = 0; i < 3; i++) {
+        await dashboardPage.navigateToDashboard();
+        await dashboardPage.waitForKPICards();
+        
+        // Navigate away
+        await dashboardPage.clickLiveSessions();
+        await page.waitForTimeout(1000);
+      }
+      
+      // Final navigation should still work
+      await dashboardPage.navigateToDashboard();
+      await dashboardPage.waitForKPICards();
+      await expect(dashboardPage.pageTitle).toBeVisible();
+    });
+  });
 });

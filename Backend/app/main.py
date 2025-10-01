@@ -12,3 +12,4 @@ def index():
 @main_bp.route('/health')
 def health():
     return "OK", 200
+

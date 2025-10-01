@@ -40,8 +40,6 @@ cp .env.example .env
 The default values in the `.env` file are pre-configured to work with the `docker-compose.yml` setup, so you don't need to change anything unless you want to customize the database credentials or secret keys.
 
 ### 2. Build and Start the Containers
-    
-#### Make sure the commands are compatible with your OS(recommended to use powershell or bash for windows)
 
 This command will build the Docker images for the Flask application and Nginx, and start all the services (app, database, proxy) in the background.
 
@@ -49,91 +47,28 @@ This command will build the Docker images for the Flask application and Nginx, a
 docker-compose up --build -d
 ```
 
-# 3. Initialize the Database
+### 3. Initialize the Database
 
-The first time you set up this project you need to ensure the database schema is created from the SQLAlchemy models and recorded in Alembic migration history.
+The first time you start the application, you need to create the database tables from the SQLAlchemy models. The following commands use Flask-Migrate to do this.
 
-**Important:** if the repository already contains a `migrations/` folder (or `app/migrations/`) then **do not run `flask db init`** again — use the existing migrations and `stamp` the DB if needed (see below). We recommend `app/migrations` as the canonical migrations folder and configuring Flask-Migrate accordingly (example shown at the end).
-
----
-
-## If you are starting from scratch (no migrations present)
-
-Run these commands **inside the running `app` container** (preferred format shown):
+Run these commands one by one:
 
 ```sh
-# start containers first
-docker-compose up -d
-
-# create alembic env (only run once when no migrations folder exists)
+# 1. Initialize the migration environment (only needs to be run once ever)
 docker-compose exec app flask db init
 
-# generate the initial migration from your models
+# 2. Create the initial migration script
 docker-compose exec app flask db migrate -m "Initial migration"
 
-# apply migrations to the database
-docker-compose exec app flask db upgrade
-```
-
-### If your container environment does not automatically expose the Flask app, use:
-
-```sh
-docker-compose exec -e FLASK_APP=wsgi:app app flask db ...
-```
-
-### but prefer `docker-compose exec app flask db ...` if `FLASK_APP` is already configured in the container.
-
----
-
-## If a migrations folder already exists (common for this repo)
-
-**Do not** re-run `flask db init`. Instead:
-
-1. Confirm the DB’s current revision:
-
-```sh
-docker-compose exec app flask db current
-```
-
-2. If the database already contains the tables (for example you loaded them from SQL), mark the DB as up-to-date with the existing migration history (this **creates the `alembic_version` row** and prevents Alembic from trying to recreate existing tables):
-
-```sh
-docker-compose exec app flask db stamp head
-```
-
-3. To generate a migration for later model changes:
-
-```sh
-# generate change script (autogenerate)
-docker-compose exec app flask db migrate -m "Describe change"
-
-# apply it
+# 3. Apply the migration to the database
 docker-compose exec app flask db upgrade
 ```
 
 ---
-
-## Important Alembic tips & commands
-
-* Show the migration history:
-
-```sh
-docker-compose exec app flask db history --verbose
-```
-
-* Show heads (multiple heads = multiple independent revision chains):
-
-```sh
-docker-compose exec app flask db heads
-```
-
-
----
-
 
 ## 🗄️ Populating the Database with Initial Data
 
-After migrations have created the tables (via flask db upgrade or by stamping to head + applying delta migrations), populate your database with initial data using your SQL script. Run the following commands:
+After running your migrations to create the tables, you can populate your database with initial data using your SQL script. Run the following commands:
 
 ```sh
 # Copy the SQL file into the running database container
@@ -234,6 +169,96 @@ To stop all the running containers, use:
 docker-compose down
 ``` 
 =======
+# vibe_coding-parking_app_cloud_server
 
-## 📚 API Endpoints & Structure Reference
-For a complete list of all endpoints and their request/response formats, see [API Specs (REST_API_Specs)](../REST_API_Specs/ADMIN_APP_REST_API_SPECS.md).
+## 🚦 New & Updated API Endpoints (v2.0)
+
+The following endpoints have been added or updated in Version 2.0. All admin endpoints require a JWT token for a user with `role: admin`.
+
+### Vehicle Session Management
+
+#### Vehicle Check-In
+- **POST** `/admin/session/checkin`
+- **Request:**
+  ```json
+  {
+    "vehicle_reg_no": "DL01AB1234",
+    "slot_id": 12,
+    "lot_id": 3,
+    "vehicle_type": "Car"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "msg": "Vehicle checked in",
+    "session_id": "<uuid>"
+  }
+  ```
+
+#### Vehicle Check-Out
+- **POST** `/admin/session/checkout`
+- **Request:**
+  ```json
+  {
+    "vehicle_reg_no": "DL01AB1234"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "amount_paid": 40.0,
+    "duration_hours": 2,
+    "checkout_time": "2025-07-04T13:10:00Z"
+  }
+  ```
+
+### Admin APIs
+
+#### Get Parking Lots for Admin
+- **GET** `/admin_lots/<admin_id>`
+- **Response:**
+  ```json
+  {
+    "admin_id": 1,
+    "parking_lot_ids": [1, 2, 3]
+  }
+  ```
+
+#### Daily Closure & Outstanding Payment
+- **POST** `/admin/closure`
+- **Request:**
+  ```json
+  {
+    "date": "2025-07-04",
+    "payment_made": 500.0
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "opening_balance": 1000.0,
+    "today_collection": 800.0,
+    "payment_made": 500.0,
+    "closing_balance": 1300.0
+  }
+  ```
+
+---
+
+## 🔒 Role-Based Access Control (RBAC)
+- All `/admin/*` endpoints require a valid JWT for a user with `role: admin`.
+- Non-admins receive a `403 Forbidden` response.
+
+## 💰 Admin Payment Ledger & Daily Closure
+- Each admin has a daily ledger entry tracking:
+  - `opening_balance` (previous day's closing balance)
+  - `today_collection` (sum of all check-outs for the day)
+  - `payment_made` (amount paid by admin that day)
+  - `closing_balance` (outstanding after payment)
+- The `/admin/closure` endpoint allows admins to submit their daily payment and view outstanding balances.
+
+---
+
+## 📚 Full API Reference
+For a complete list of all endpoints and their request/response formats, see [`SmartParking_API_v2.md`](./SmartParking_API_v2.md).

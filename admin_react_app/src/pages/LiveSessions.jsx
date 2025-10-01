@@ -98,7 +98,7 @@ const LiveSessions = () => {
     }));
   };
 
-  // Calculate session duration timer (mock implementation)
+  // Calculate session duration timer
   const [currentTime, setCurrentTime] = useState(new Date());
   
   useEffect(() => {

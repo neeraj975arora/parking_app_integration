@@ -8,7 +8,7 @@ import Select from '../components/forms/Select';
 import { ConfirmationModal } from '../components/common/Modal';
 import adminService from '../services/adminService';
 import { calculateAdminKPIs, formatAdminStatus, formatAssignedLots } from '../utils/helpers';
-import { validateName, validateEmail, validatePassword, validateRequired, validatePhone } from '../utils/validators';
+import { validateName, validateEmail, validatePassword, validatePhone, validateRequired } from '../utils/validators';
 
 const AdminManagement = () => {
   const { user } = useAuth();
@@ -45,8 +45,8 @@ const AdminManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, admin: null });
 
-  // Generate parking lots data (1-80)
-  const parkingLots = Array.from({ length: 80 }, (_, index) => ({
+  // Generate parking lots data (1-10 as available in database)
+  const parkingLots = Array.from({ length: 10 }, (_, index) => ({
     value: index + 1,
     label: `Parking Lot P${index + 1}`
   }));
@@ -261,13 +261,57 @@ const AdminManagement = () => {
     if (!deleteModal.admin) return;
     
     try {
-      await adminService.deleteAdmin(deleteModal.admin.admin_id);
+      // Extract admin ID - try multiple possible field names
+      const adminId = deleteModal.admin.admin_id || deleteModal.admin.user_id || deleteModal.admin.id;
+      
+      if (!adminId) {
+        console.error('Admin ID not found. Available fields:', Object.keys(deleteModal.admin));
+        throw new Error('Admin ID not found in admin data');
+      }
+      
+      // Extract parking lot IDs from assigned lots
+      const parkingLotIds = deleteModal.admin.assigned_lots ? 
+        deleteModal.admin.assigned_lots.map(lot => {
+          // Handle both object format {parkinglot_id: X} and direct ID format
+          if (typeof lot === 'object' && lot.parkinglot_id) {
+            return lot.parkinglot_id;
+          } else if (typeof lot === 'number') {
+            return lot;
+          } else if (typeof lot === 'string') {
+            return parseInt(lot, 10);
+          }
+          return lot;
+        }).filter(id => id != null && !isNaN(id)) : [];
+      
+      console.log('Delete admin data:', {
+        adminId: adminId,
+        parkingLotIds: parkingLotIds,
+        adminData: deleteModal.admin,
+        assignedLots: deleteModal.admin.assigned_lots
+      });
+      
+      if (parkingLotIds.length === 0) {
+        throw new Error('No valid parking lot IDs found for this admin');
+      }
+      
+      await adminService.deleteAdmin(adminId, parkingLotIds);
       setDeleteModal({ isOpen: false, admin: null });
+      
+      // Show success message
+      setSubmitSuccess(`Admin "${deleteModal.admin?.name || deleteModal.admin?.username || 'Unknown'}" has been successfully deleted.`);
+      setSubmitError(''); // Clear any previous errors
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSubmitSuccess('');
+      }, 5000);
       
       // Refresh admin data
       await fetchAdminData();
     } catch (error) {
       console.error('Failed to delete admin:', error);
+      // Show error to user
+      setSubmitError(error.message);
     }
   };
 
@@ -367,12 +411,24 @@ const AdminManagement = () => {
             />
 
             <Input
+              name="password"
+              type="password"
+              label="Password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Enter password"
+              required
+              error={formErrors.password}
+              className="text-gray-900"
+            />
+
+            <Input
               name="phone_no"
               type="tel"
               label="Phone Number"
               value={formData.phone_no}
               onChange={handleInputChange}
-              placeholder="Enter 10-digit phone number"
+              placeholder="Enter phone number"
               required
               error={formErrors.phone_no}
               className="text-gray-900"
@@ -387,18 +443,6 @@ const AdminManagement = () => {
               placeholder="Enter address"
               required
               error={formErrors.address}
-              className="text-gray-900"
-            />
-
-            <Input
-              name="password"
-              type="password"
-              label="Password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Enter password"
-              required
-              error={formErrors.password}
               className="text-gray-900"
             />
 
@@ -560,7 +604,7 @@ const AdminManagement = () => {
                     </tr>
                   ) : (
                     filteredAdmins.map((admin) => (
-                      <tr key={admin.admin_id} className="hover:bg-gray-50">
+                      <tr key={admin.user_id} className="hover:bg-gray-50">
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {admin.name || admin.username}
                         </td>
@@ -615,7 +659,7 @@ const AdminManagement = () => {
         onClose={() => setDeleteModal({ isOpen: false, admin: null })}
         onConfirm={handleDeleteAdmin}
         title="Delete Admin"
-        message={`Are you sure you want to delete admin "${deleteModal.admin?.name || deleteModal.admin?.username}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete admin "${deleteModal.admin?.name || deleteModal.admin?.username || deleteModal.admin?.email || 'Unknown'}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         confirmVariant="danger"

@@ -91,11 +91,15 @@ export const getActiveSessions = async (user) => {
     const totalRevenue = active.reduce((sum, p) => {
       const start = new Date(p.start_time).getTime();
       const hrs = Math.max(0, (now - start) / (1000 * 60 * 60));
-      const rate = p.vehicle_type === 'car' ? 50 : 30;
+      // Normalize vehicle type case for consistent comparison
+      const vehicleType = (p.vehicle_type || '').toLowerCase();
+      const rate = vehicleType === 'car' ? 50 : 30;
       return sum + hrs * rate;
     }, 0);
-    const totalSlots = 100; // heuristic; can be refined if needed
-    const occupancyRate = Math.min(100, Math.round((activeParticipants / totalSlots) * 100));
+    // TODO: Get actual total slots from parking lot API
+    // For now, use a reasonable default based on active sessions
+    const estimatedTotalSlots = Math.max(activeParticipants * 2, 50);
+    const occupancyRate = Math.min(100, Math.round((activeParticipants / estimatedTotalSlots) * 100));
 
     // Generate recent activity from session data
     const recentActivity = sessions
@@ -121,74 +125,9 @@ export const getActiveSessions = async (user) => {
     };
   } catch (error) {
     console.error('Error fetching active sessions:', error);
-    
-    // Return mock data for development if API fails
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Using mock data due to API error');
-      return getMockActiveSessions();
-    }
-    
     throw error;
   }
 };
 
-// Mock data for development/testing
-const getMockActiveSessions = () => {
-  const mockSessions = [
-    {
-      ticket_id: 'TKT001',
-      participant_name: 'John Doe',
-      vehicle_reg_no: 'ABC123',
-      parkinglot_id: 'PARK001',
-      start_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      vehicle_type: 'car'
-    },
-    {
-      ticket_id: 'TKT002',
-      participant_name: 'Jane Smith',
-      vehicle_reg_no: 'XYZ789',
-      parkinglot_id: 'PARK001',
-      start_time: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      vehicle_type: 'motorcycle'
-    }
-  ];
-
-  const now = Date.now();
-  const toHsl = (str) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    const h = Math.abs(hash) % 360; return `hsl(${h}, 70%, 55%)`;
-  };
-  const formatDuration = (hours) => {
-    if (!hours || hours <= 0) return '0h 0m';
-    const whole = Math.floor(hours); const mins = Math.round((hours - whole) * 60); return `${whole}h ${mins}m`;
-  };
-
-  const active = mockSessions.map(s => {
-    const startMs = new Date(s.start_time).getTime();
-    const elapsedHours = Math.max(0, (now - startMs) / (1000 * 60 * 60));
-    return {
-      ...s,
-      duration: formatDuration(elapsedHours),
-      avatar_color: toHsl(s.vehicle_reg_no || s.ticket_id || String(startMs))
-    };
-  });
-
-  return {
-    activeSessions: active,
-    stats: {
-      activeParticipants: active.length,
-      totalRevenue: 150.75,
-      avgSessionTime: '1h 30m',
-      occupancyRate: 45
-    },
-    recentActivity: [
-      {
-        type: 'leave',
-        message: 'Vehicle DEF456 checked out',
-        time: '10:30 AM',
-        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-      }
-    ]
-  };
-};
+// MOCK CODE REMOVED - Use real backend API only
+// getMockActiveSessions() { ... }

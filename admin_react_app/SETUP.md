@@ -105,10 +105,10 @@ Edit `src/utils/constants.js` and modify the `API_BASE_URL`:
 
 ```javascript
 // For Mock Server
-export const API_BASE_URL = 'http://localhost:3001'
+//export const API_BASE_URL = 'http://localhost:3001'
 
 // For Python Backend
-// export const API_BASE_URL = 'http://localhost:8000'
+ export const API_BASE_URL = 'http://localhost:80'
 
 // For Production Backend
 // export const API_BASE_URL = 'https://your-production-api.com'

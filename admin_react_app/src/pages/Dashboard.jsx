@@ -138,9 +138,6 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
           <p className="text-gray-600 mt-1">
             Welcome back, <span className="font-medium text-blue-600">{user?.username || user?.user_email}</span>
-            {dashboardData?.isUsingMockData && (
-              <span className="ml-2 text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Using demo data</span>
-            )}
           </p>
         </div>
         <div className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-xs inline-flex self-start sm:self-center">
@@ -279,8 +276,8 @@ const Dashboard = () => {
             </div>
             <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
               <span className="text-sm font-medium text-gray-700">Data Source</span>
-              <span className={`text-sm font-bold ${dashboardData?.isUsingMockData ? 'text-amber-600' : 'text-green-600'}`}>
-                {dashboardData?.isUsingMockData ? 'Demo Data' : 'Live API'}
+              <span className="text-sm font-bold text-green-600">
+                Live API
               </span>
             </div> 
           </div>

@@ -54,26 +54,14 @@ class LoginPage extends BasePage {
   }
 
   async waitForLoginSuccess() {
-    // Wait for either URL change to dashboard or dashboard title to appear
-    const dashboardTitleSelector = 'h1:has-text("Dashboard Overview")';
     try {
-      await Promise.race([
-        this.page.waitForURL('**/dashboard', { timeout: 40000 }),
-        this.page.waitForSelector(dashboardTitleSelector, { timeout: 40000 })
-      ]);
+      await this.page.waitForURL('**/dashboard', { timeout: 20000 });
     } catch (error) {
-      // If still on login, try clicking login again (in case first click was ignored)
-      if (!this.page.isClosed() && this.page.url().includes('/login')) {
-        try {
-          await this.loginButton.click();
-          await Promise.race([
-            this.page.waitForURL('**/dashboard', { timeout: 10000 }),
-            this.page.waitForSelector(dashboardTitleSelector, { timeout: 10000 })
-          ]);
-        } catch {}
-      }
-      // As a last resort, navigate directly (guard may still allow if state is set)
-      if (!this.page.isClosed() && !this.page.url().includes('/dashboard')) {
+      // If navigation fails, check if we're still on login page and try again
+      const currentUrl = this.page.url();
+      if (currentUrl.includes('/login')) {
+        // Wait a bit more and try to navigate manually
+        await this.page.waitForTimeout(3000);
         await this.page.goto('http://localhost:5173/dashboard');
         await this.page.waitForLoadState('networkidle');
       }
@@ -85,9 +73,7 @@ class LoginPage extends BasePage {
   }
 
   async isLoginSuccessful() {
-    const onDashboardUrl = this.page.url().includes('/dashboard');
-    const hasDashboardTitle = await this.page.locator('h1:has-text("Dashboard Overview")').first().isVisible().catch(() => false);
-    return onDashboardUrl || hasDashboardTitle;
+    return this.page.url().includes('/dashboard');
   }
 
   async getLoginErrorMessage() {

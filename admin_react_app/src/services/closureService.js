@@ -2,50 +2,35 @@ import api from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 
 class ClosureService {
-  // Get closure data for daily closure page
+  // Get closure data for daily closure page using total_due endpoint
   async getClosureData(date) {
     try {
-      const params = date ? { params: { date } } : undefined;
-      const response = await api.get(API_ENDPOINTS.ADMIN.CLOSURE, params);
-      console.log('Closure API Response:', response.data); // Debug log
+      const response = await api.get(API_ENDPOINTS.ADMIN.TOTAL_DUE);
+      console.log('Total Due API Response:', response.data); // Debug log
       
-      // Handle different response structures
-      if (response.data && response.data.closure) {
-        return response.data.closure; // { success: true, closure: {...} }
-      } else if (response.data && response.data.outstanding_amount !== undefined) {
-        return response.data; // Direct closure object
-      } else {
-        console.warn('Unexpected API response structure:', response.data);
-        return this.getMockClosureData();
-      }
+      // The API returns: { date, outstanding_amount, today_collection }
+      return response.data;
     } catch (error) {
-      console.warn('API call failed, using mock closure data:', error.message);
-      return this.getMockClosureData();
+      console.error('API call failed:', error.message);
+      throw error;
     }
   }
 
-  // Finalize daily closure with payment amount using unified /admin/closure endpoint
+  // Finalize daily closure with payment amount using /admin/closure endpoint
   async finalizeClosureData(paymentAmount, date) {
     try {
       const targetDate = date || new Date().toISOString().split('T')[0];
       const response = await api.post(API_ENDPOINTS.ADMIN.CLOSURE, {
         date: targetDate,
-        amount_paid: paymentAmount
+        payment_made: paymentAmount
       });
       console.log('Finalize Closure API Response:', response.data); // Debug log
       
-      // Handle different response structures
-      if (response.data && response.data.closure) {
-        return response.data.closure;
-      } else if (response.data && response.data.amount_paid !== undefined) {
-        return response.data;
-      } else {
-        console.warn('Unexpected finalize response structure:', response.data);
-        return this.simulateClosureFinalization(paymentAmount);
-      }
+      // The API returns: { opening_balance, today_collection, payment_made, closing_balance }
+      return response.data;
     } catch (error) {
-      console.warn('API call failed, simulating closure finalization:', error.message);
-      return this.simulateClosureFinalization(paymentAmount);
+      console.error('API call failed:', error.message);
+      throw error;
     }
   }
 
@@ -53,11 +38,11 @@ class ClosureService {
   calculateClosureMetrics(closureData) {
     if (!closureData) {
       return {
-        outstandingAmount: 0,
-        todayCollection: 0,
-        totalDue: 0,
-        amountPaid: 0,
-        newOutstanding: 0,
+        outstandingAmount: closureData.opening_balance || 0,
+        todayCollection: closureData.today_collection || 0,
+        totalDue: closureData.total_due || 0,
+        amountPaid: closureData.amount_paid || 0,
+        newOutstanding: closureData.new_outstanding || 0,
         date: new Date().toISOString().split('T')[0],
         status: 'pending'
       };
@@ -124,112 +109,25 @@ class ClosureService {
     }
   }
 
-  // Get mock closure data for fallback
-  getMockClosureData() {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Randomize values for more realistic mock data
-    const outstandingAmount = Math.floor(Math.random() * 5000) + 1000;
-    const todayCollection = Math.floor(Math.random() * 3000) + 500;
-    const totalDue = outstandingAmount + todayCollection;
-    
-    return {
-      date: today.toISOString().split('T')[0],
-      opening_balance: outstandingAmount,
-      outstanding_amount: outstandingAmount, // Include both for compatibility
-      today_collection: todayCollection,
-      total_due: totalDue,
-      amount_paid: 0,
-      payment_made: 0, // Include both for compatibility
-      new_outstanding: totalDue,
-      status: 'pending',
-      previous_date: yesterday.toISOString().split('T')[0],
-      isMockData: true
-    };
-  }
-
-  // Simulate closure finalization with mock data
-  simulateClosureFinalization(paymentAmount) {
-    // Use the service's validatePaymentAmount method
-    const validation = this.validatePaymentAmount(paymentAmount);
-    if (!validation.isValid) {
-      throw new Error(validation.error);
-    }
-    
-    const validatedAmount = validation.value;
-    const mockData = this.getMockClosureData();
-    
-    // Calculate new outstanding amount
-    const totalDue = mockData.total_due;
-    const newOutstanding = Math.max(0, totalDue - validatedAmount);
-    
-    // Determine status based on payment
-    let status = 'pending';
-    if (validatedAmount > 0) {
-      status = validatedAmount >= totalDue ? 'completed' : 'partial';
-    }
-    
-    return {
-      ...mockData,
-      amount_paid: validatedAmount,
-      payment_made: validatedAmount, // Include both for compatibility
-      new_outstanding: newOutstanding,
-      status: status,
-      finalized_at: new Date().toISOString(),
-      isMockData: true
-    };
-  }
+  // MOCK CODE REMOVED - Use real backend API only
+  // getMockClosureData() { ... }
+  // simulateClosureFinalization(paymentAmount) { ... }
 
   // Get closure history for reporting
   async getClosureHistory(startDate, endDate) {
     try {
-      const response = await api.get(`${API_ENDPOINTS.ADMIN.CLOSURE}/history`, {
+      const response = await api.get(API_ENDPOINTS.ADMIN.CLOSURE, {
         params: { start_date: startDate, end_date: endDate }
       });
       return response.data;
     } catch (error) {
-      console.warn('API call failed, using mock closure history:', error.message);
-      return this.getMockClosureHistory(startDate, endDate);
+      console.error('API call failed:', error.message);
+      throw error;
     }
   }
 
-  // Generate mock closure history
-  getMockClosureHistory(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    
-    const history = [];
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(start);
-      date.setDate(date.getDate() + i);
-      
-      const outstandingAmount = Math.floor(Math.random() * 5000) + 1000;
-      const todayCollection = Math.floor(Math.random() * 3000) + 500;
-      const totalDue = outstandingAmount + todayCollection;
-      const paymentMade = Math.floor(Math.random() * totalDue);
-      const newOutstanding = Math.max(0, totalDue - paymentMade);
-      
-      history.push({
-        date: date.toISOString().split('T')[0],
-        opening_balance: outstandingAmount,
-        outstanding_amount: outstandingAmount,
-        today_collection: todayCollection,
-        total_due: totalDue,
-        amount_paid: paymentMade,
-        payment_made: paymentMade,
-        new_outstanding: newOutstanding,
-        status: paymentMade >= totalDue ? 
-                'completed' : (paymentMade > 0 ? 'partial' : 'pending'),
-        isMockData: true
-      });
-    }
-    
-    return history;
-  }
+  // MOCK CODE REMOVED - Use real backend API only
+  // getMockClosureHistory(startDate, endDate) { ... }
 }
 
 // Create and export a singleton instance

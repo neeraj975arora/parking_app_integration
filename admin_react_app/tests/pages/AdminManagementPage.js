@@ -219,6 +219,7 @@ class AdminManagementPage extends BasePage {
       role: await row.locator('td').nth(2).textContent(),
       assignedLots: await row.locator('td').nth(3).textContent(),
       status: await row.locator('td').nth(4).textContent(),
+      phone_no: await row.locator('td').nth(5).textContent(),
     };
   }
 

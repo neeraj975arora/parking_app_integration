@@ -34,18 +34,21 @@ class ParkingLotDetails(db.Model):
     value_added_services = db.Column(db.Text)
 
     floors = db.relationship('Floor', backref='parking_lot', lazy=True)
+    admin_parking_lots = db.relationship('AdminParkingLot', backref='parking_lot', lazy=True)
 
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
-    user_name = db.Column(db.String(100), nullable=False)
+    user_name = db.Column(db.String(100), unique=True, nullable=False)
     user_email = db.Column(db.String(100), unique=True, nullable=False)
     user_password = db.Column(db.String(255), nullable=False)
     user_phone_no = db.Column(db.String(15), unique=True, nullable=False)
-    user_address = db.Column(db.Text)
-    role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'admin'
+    user_address = db.Column(db.Text, nullable=False)
+    role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'admin' or 'super_admin'
+    created_on = db.Column(db.DateTime, default=datetime.utcnow)
 
     sessions = db.relationship('ParkingSession', backref='user', lazy=True)
+    admin_parking_lots = db.relationship('AdminParkingLot', backref='admin', lazy=True)
 
     def set_password(self, password):
         self.user_password = generate_password_hash(password)
@@ -93,13 +96,16 @@ class ParkingSession(db.Model):
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
     duration_hrs = db.Column(db.Numeric, server_default=None)
+    amount_paid = db.Column(db.Numeric(10, 2), nullable=True, server_default="0")  # <- NEW
     vehicle_type = db.Column(db.String(20))  # Car, Two-Wheeler, etc.
+    
 
 class AdminParkingLot(db.Model):
     __tablename__ = 'admin_parking_lots'
     id = db.Column(db.Integer, primary_key=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    parking_lot_id = db.Column(db.Integer, db.ForeignKey('parkinglots_details.parkinglot_id'), nullable=False) 
+    parking_lot_id = db.Column(db.Integer, db.ForeignKey('parkinglots_details.parkinglot_id'), nullable=False)
+    assigned_date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date()) 
 
 class AdminPaymentLedger(db.Model):
     __tablename__ = 'admin_payment_ledger'

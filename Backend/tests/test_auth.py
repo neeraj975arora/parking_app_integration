@@ -135,6 +135,7 @@ def register_user(client, role='user', email=None, phone=None, secret=None):
     return resp
 
 def login_user(client, email, password='password'):
+    """Login user"""
     resp = client.post('/auth/login', data=json.dumps({
         'user_email': email,
         'user_password': password

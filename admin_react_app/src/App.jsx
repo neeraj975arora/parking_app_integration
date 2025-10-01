@@ -8,7 +8,6 @@ import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './guards/ProtectedRoute';
 import RoleBasedRoute from './guards/RoleBasedRoute';
 import './App.css';
-import { initializeMockData } from './services/mockData';
 
 function App() {
   return (

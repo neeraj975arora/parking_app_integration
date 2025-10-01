@@ -45,7 +45,6 @@ test.describe('Login Page Tests', () => {
     test('should login successfully as admin', async ({ page }) => {
       await loginPage.loginAsAdmin();
       await loginPage.waitForLoginSuccess();
-      await loginPage.waitForLoadingToComplete();
       
       expect(await loginPage.isLoginSuccessful()).toBe(true);
       await expect(page).toHaveURL(/.*dashboard/);
@@ -64,7 +63,6 @@ test.describe('Login Page Tests', () => {
       await loginPage.useAdminDemoCredentials();
       await loginPage.loginButton.click();
       await loginPage.waitForLoginSuccess();
-      await loginPage.waitForLoadingToComplete();
       
       expect(await loginPage.isLoginSuccessful()).toBe(true);
       await expect(page).toHaveURL(/.*dashboard/);

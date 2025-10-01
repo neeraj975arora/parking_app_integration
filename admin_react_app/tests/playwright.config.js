@@ -2,14 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: false, // run files/tests sequentially to avoid shared-state flakiness
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // ensure deterministic, serialized execution locally and in CI
+  workers: process.env.CI ? 1 : undefined,
   timeout: 120000, // 120 seconds per test
-  expect: {
-    timeout: 15000, // stabilize slow assertions across the suite
-  },
   reporter: [
     ['html', { outputFolder: '../test-results/playwright-report' }],
     ['json', { outputFile: '../test-results/results.json' }],

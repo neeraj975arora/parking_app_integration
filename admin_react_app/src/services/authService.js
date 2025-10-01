@@ -5,11 +5,11 @@ import { isTokenExpired } from "../utils/helpers";
 
 class AuthService {
   // Login method
-  async login(credentials) {
-    // // Use mock API service if enabled
-    // if (mockApiService.isEnabled) {
-    //   try {
-    //     const data = await mockApiService.login(credentials);
+  // async login(credentials) {
+  //   // Use mock API service if enabled
+  //   if (mockApiService.isEnabled) {
+  //     try {
+  //       const data = await mockApiService.login(credentials);
         
     //     // Return structured user data for mock API
     //     return {
@@ -29,8 +29,8 @@ class AuthService {
     //     throw new Error(error.message || "Login failed");
     //   }
     // }
-
-    try {
+    async login(credentials) {
+     try {
       const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, {
         user_email: credentials.user_email,
         user_password: credentials.user_password,

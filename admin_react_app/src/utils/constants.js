@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001' 
+export const API_BASE_URL = 'http://localhost:80'
 
 
 // User Roles
@@ -29,11 +29,11 @@ export const API_ENDPOINTS = {
   },
   ADMIN: {
     ALL_SESSION_DETAILS: "/admin/sessions/details/all", // super_admin -> GET
-    SESSION_DETAILS: "/admin/session/details",        // admin -> GET /admin/session/details/:user_id
+    SESSION_DETAILS: "/admin/sessions/details",        // admin -> GET /admin/sessions/details/:user_id
     CREATE: "/admin/assign_lot",                       // super_admin -> POST (create admin)
     ASSIGN_LOT: "/admin/assign_lot",
     REMOVE_ASSIGNMENT: "/admin/remove_assignment",
-    ALL_ADMIN_LOTS: "/admins/admin_lots/all",
+    ALL_ADMIN_LOTS: "/admin/admin_lots/all",
     CLOSURE: "/admin/closure",                         // GET for data, POST for create/update/finalize
     TOTAL_DUE: "/admin/total_due",
     SESSION_CHECKIN: "/admin/session/checkin",
@@ -41,7 +41,7 @@ export const API_ENDPOINTS = {
   },
 };
 
-// Demo Credentials (matching RBAC document)
+// Demo Credentials (matching backend seed data)
 export const DEMO_CREDENTIALS = {
   SUPER_ADMIN: {
     user_email: "superadmin@parking.com",
@@ -50,8 +50,8 @@ export const DEMO_CREDENTIALS = {
     label: "Super Admin",
   },
   ADMIN: {
-    user_email: "admin@parking.com",
-    user_password: "admin123",
+    user_email: "admin10@parking.com",
+    user_password: "password123",
     role: USER_ROLES.ADMIN,
     label: "Admin",
   },

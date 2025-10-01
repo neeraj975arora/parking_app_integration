@@ -6,29 +6,38 @@ class AdminService {
   // adminService.js - Fix createAdmin method
   async createAdmin(adminData) {
     try {
-      const response = await api.post(API_ENDPOINTS.ADMIN.CREATE, { // Changed endpoint
+      const requestData = {
         name: adminData.name,
         email: adminData.email,
         password: adminData.password,
         role: 'admin',
         assigned_lots: adminData.assigned_lots,
-      });
+        phone_no: adminData.phone_no,
+        address: adminData.address
+      };
 
+      console.log('Creating admin with data:', requestData);
+      console.log('Using endpoint:', API_ENDPOINTS.ADMIN.CREATE);
+
+      const response = await api.post(API_ENDPOINTS.ADMIN.CREATE, requestData);
+
+      console.log('Admin creation response:', response.data);
       return response.data;
     } catch (error) {
-      // Handle specific admin creation errors
+      console.error('Admin creation error:', error);
       if (error.response) {
         const { status, data } = error.response;
+        console.error('Error response:', { status, data });
         
         switch (status) {
           case 400:
-            throw new Error(data?.message || 'Invalid admin data provided');
+            throw new Error(data?.error || data?.message || 'Invalid admin data provided');
           case 403:
             throw new Error('You are not authorized to create admin accounts');
           case 409:
             throw new Error('An admin with this email already exists');
           default:
-            throw new Error(data?.message || 'Failed to create admin account');
+            throw new Error(data?.error || data?.message || 'Failed to create admin account');
         }
       } else if (error.request) {
         throw new Error('Network error. Please check your connection');
@@ -46,14 +55,17 @@ class AdminService {
       const assignments = Array.isArray(payload?.data) ? payload.data : [];
       // Normalize to the shape expected by UI (array of admins)
       const admins = assignments.map((a) => ({
-        admin_id: a.admin_id,
-        name: a.admin_name, // Updated to match new API structure
-        email: a.admin_email || undefined,
+        admin_id: a.user_id, // Backend returns user_id, map it to admin_id
+        user_id: a.user_id, // Keep user_id as well
+        name: a.user_name, // Backend returns user_name
+        username: a.user_name, // Add username as fallback
+        email: a.user_email || undefined,
+        phone_no: a.user_phone_no, // Backend returns user_phone_no
         role: 'admin',
         assigned_lots: Array.isArray(a.assigned_lots) ? a.assigned_lots : [],
         // Include additional fields for future use
-        admin_phone_no: a.admin_phone_no,
-        admin_address: a.admin_address,
+        admin_phone_no: a.user_phone_no,
+        admin_address: a.user_address,
         joining_date: a.joining_date,
         status: a.status,
         permissions: a.permissions,
@@ -121,24 +133,42 @@ class AdminService {
   }
 
   // Delete admin assignment
-  async deleteAdmin(userId) {
+  async deleteAdmin(adminId, parkingLotIds = []) {
     try {
+      // If no parking lot IDs provided, we can't delete anything
+      if (!parkingLotIds || parkingLotIds.length === 0) {
+        throw new Error('No parking lots assigned to this admin');
+      }
+
+      console.log('Sending delete request with data:', {
+        admin_id: adminId,
+        parking_lot_id: parkingLotIds
+      });
+
       const response = await api.delete(API_ENDPOINTS.ADMIN.REMOVE_ASSIGNMENT, {
-        data: { user_id: userId }
+        data: { 
+          admin_id: adminId,
+          parking_lot_id: parkingLotIds
+        }
       });
       
+      console.log('Delete response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Delete admin error:', error);
       if (error.response) {
         const { status, data } = error.response;
+        console.error('Error response:', { status, data });
         
         switch (status) {
+          case 400:
+            throw new Error(data?.msg || data?.message || 'Invalid request data');
           case 403:
             throw new Error('You are not authorized to delete admin accounts');
           case 404:
-            throw new Error('Admin account not found');
+            throw new Error('Admin assignment not found');
           default:
-            throw new Error(data?.message || 'Failed to delete admin account');
+            throw new Error(data?.msg || data?.message || 'Failed to delete admin assignment');
         }
       } else if (error.request) {
         throw new Error('Network error. Please check your connection');

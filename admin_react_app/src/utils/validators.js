@@ -55,6 +55,28 @@ export const validateName = (name) => {
 };
 
 // Phone number validation
+export const validatePhoneNumber = (phone) => {
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  
+  if (!phone) {
+    return { isValid: false, message: 'Phone number is required' };
+  }
+  
+  // Remove spaces, dashes, and parentheses for validation
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  
+  if (cleanPhone.length < 10) {
+    return { isValid: false, message: 'Phone number must be at least 10 digits' };
+  }
+  
+  if (!phoneRegex.test(cleanPhone)) {
+    return { isValid: false, message: 'Please enter a valid phone number' };
+  }
+  
+  return { isValid: true, message: '' };
+};
+
+// Phone number validation
 export const validatePhone = (phone) => {
   const phoneRegex = /^[6-9]\d{9}$/;
   

@@ -8,7 +8,7 @@
 export const calculateTotalIncome = (sessions) => {
   if (!Array.isArray(sessions)) return 0;
   
-  return sessions
+  const total = sessions
     .filter(session => session.end_time !== null && session.duration_hrs)
     .reduce((total, session) => {
       // Calculate payment based on duration and vehicle type
@@ -16,6 +16,8 @@ export const calculateTotalIncome = (sessions) => {
       const baseRate = session.vehicle_type === 'car' ? 50 : 30; // ₹50/hr for car, ₹30/hr for motorcycle
       return total + (duration * baseRate);
     }, 0);
+  
+  return Math.round(total * 100) / 100; // Round to 2 decimal places
 };
 
 /**
@@ -36,7 +38,8 @@ export const calculateTotalSessions = (sessions) => {
  */
 export const calculateRevenuePerSlot = (totalIncome, totalParkingSlots) => {
   if (!totalParkingSlots || totalParkingSlots === 0) return 0;
-  return totalIncome / totalParkingSlots;
+  const revenue = totalIncome / totalParkingSlots;
+  return Math.round(revenue * 100) / 100; // Round to 2 decimal places
 };
 
 /**
@@ -68,7 +71,8 @@ export const calculateAverageSessionTime = (sessions) => {
     0
   );
   
-  return totalHours / completedSessions.length;
+  const average = totalHours / completedSessions.length;
+  return Math.round(average * 100) / 100; // Round to 2 decimal places
 };
 
 /**
@@ -121,10 +125,14 @@ export const calculateDashboardKPIs = (sessions, previousSessions = [], totalPar
   // Helper functions
   const calculateTotalIncome = (sessions) => {
     const estimateAmount = (s) => {
-      if (typeof s.total_amount === 'number' && s.total_amount > 0) return s.total_amount;
+      // Check if amount_paid exists (from database)
+      if (typeof s.amount_paid === 'number' && s.amount_paid > 0) return s.amount_paid;
+      // Fallback: calculate from duration and vehicle type
       const duration = typeof s.duration_hrs === 'number' ? s.duration_hrs : 0;
       if (!s.end_time || duration <= 0) return 0;
-      const rate = s.vehicle_type === 'car' ? 50 : 30;
+      // Normalize vehicle type case for consistent comparison
+      const vehicleType = (s.vehicle_type || '').toLowerCase();
+      const rate = vehicleType === 'car' ? 50 : 30;
       return Math.round(duration * rate * 100) / 100;
     };
     return sessions
@@ -134,17 +142,20 @@ export const calculateDashboardKPIs = (sessions, previousSessions = [], totalPar
 
   const calculateTotalSessions = (sessions) => sessions.length;
 
-  const calculateRevenuePerSlot = (income, slots) => 
-    slots > 0 ? income / slots : 0;
+  const calculateRevenuePerSlot = (income, slots) => {
+    if (slots <= 0) return 0;
+    const revenue = income / slots;
+    return Math.round(revenue * 100) / 100; // Round to 2 decimal places
+  };
 
   const calculateActiveParticipants = (sessions) => 
     sessions.filter(s => !s.end_time).length;
 
   const calculateAverageSessionTime = (sessions) => {
     const completedSessions = sessions.filter(s => s.end_time && s.duration_hrs);
-    return completedSessions.length > 0 
-      ? completedSessions.reduce((sum, s) => sum + (s.duration_hrs || 0), 0) / completedSessions.length
-      : 0;
+    if (completedSessions.length === 0) return 0;
+    const average = completedSessions.reduce((sum, s) => sum + (s.duration_hrs || 0), 0) / completedSessions.length;
+    return Math.round(average * 100) / 100; // Round to 2 decimal places
   };
 
   const calculateOccupancyRate = (active, totalSlots) => 
