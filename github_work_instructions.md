@@ -8,38 +8,30 @@ This monorepo contains the full-stack solution for the smart parking system, inc
 
 We follow a **monorepo strategy** with clearly separated folders for each major component:
 
+## Repository Structure
 ```
 parking_app_integration/
-├── user_android_app/           # Android mobile app
-│   ├── app/
-│   ├── tests/                  # Appium / pytest
-│   └── build.gradle
-
-├── cloud_server/              # FastAPI/Flask backend
-│   ├── src/
-│   ├── Dockerfile
-│   └── docker-compose.yml
-
-├── parking_detection/         # Optional: ML microservice
-│   ├── models/
-│   └── Dockerfile
-
-├── shared/                    # Optional: common models/config
-│   ├── api_contracts/
-│   └── utils/
-
-├── .github/
-│   └── workflows/
-│       ├── android.yml        # Android app CI
-│       ├── cloud.yml          # Backend CI
-│       ├── ml.yml             # ML service CI
-│       └── e2e.yml            # Full stack E2E tests
-
-├── e2e-artifacts/             # Stores test logs/results
-├── README.md
-└── Makefile                   # CLI to build/run/test all components
+├── admin_react_app/           # React Admin Dashboard (Frontend)
+│   ├── src/                   # Source code
+│   ├── public/                # Static assets
+│   ├── tests/                 # Test files
+│   └── package.json           # Dependencies
+├── Backend/                   # Flask API Server
+│   ├── app/                   # Application code
+│   ├── tests/                 # Test files
+│   ├── nginx/                 # Nginx configuration
+│   └── docker-compose.yml     # Docker setup
+├── Vision-Parking/            # Android Mobile App
+│   ├── app/                   # Android source
+│   ├── tests/                 # Test files
+│   └── build.gradle.kts       # Build configuration
+├── Parking-Server/            # Computer Vision Server
+│   ├── model/                 # ML models
+│   ├── static/                # Static files
+│   └── templates/             # HTML templates
+├── REST_API_Specs/            # API Documentation
+└── README.md                  # Project documentation
 ```
-
 ### Explanation
 
 - **user_android_app/**: Contains the Android mobile app source code and its tests.
@@ -72,6 +64,7 @@ parking_app_integration/
 3. **Create a New Feature Branch**
    ```bash
    git checkout -b feature/your-feature-name   # Create and switch to a new branch for your feature
+   eg. git checkout -b feature/reactapp-integration
    ```
    Use a descriptive branch name.
 
@@ -82,6 +75,7 @@ parking_app_integration/
    ```bash
    git add Backend/    # Stage all changes in the Backend folder
    git commit -m "[Backend] Add feature: your feature description"   # Commit with a descriptive message
+   eg.  git commit -m "[Backend] Add feature:reactapp-integration. "
    ```
 
 6. **Push Your Branch to GitHub(step 7 and 8 are optional only needed if explicit review is required by owner of repo)**
@@ -132,33 +126,36 @@ If you are not a direct collaborator (i.e., you do not have push access), you wo
 3. **Create a New Feature Branch**
    ```bash
    git checkout -b feature/cross-project-feature   # Create and switch to a new branch for your cross-project feature
-   ```
+   eg. git checkout -b feature/reactapp-integration
+    ```
 
-4. **Make Changes in Both Relevant Folders**
+5. **Make Changes in Both Relevant Folders**
    Edit/add code in both relevant subfolders (e.g., `Backend/` and `Vision-Parking/`).
 
-5. **Stage and Commit All Changes**
+6. **Stage and Commit All Changes**
    ```bash
    git add Backend/ Vision-Parking/   # Stage all changes in both folders
    git commit -m "[Cross-Project] Implement feature across Backend and Vision-Parking"   # Commit with a descriptive message
+   eg. git commit -m "[cross Project] Implement feature across Backend and Vision-Parking"
    ```
 
-6. **Push Your Branch to GitHub**
+7. **Push Your Branch to GitHub**
    ```bash
    git push origin feature/cross-project-feature   # Upload your branch and commits to GitHub
+   eg. git push origin feature/reactapp-integration
    ```
 
-7. **Create a Pull Request (PR) on GitHub**
+8. **Create a Pull Request (PR) on GitHub**
    - Go to the repository on GitHub.
    - Click "Compare & pull request" for your branch.
    - Fill in the PR title and description, and select `main` as the base branch.
    - Submit the PR.
 
-8. **Request Review and Wait for Approval**
+9. **Request Review and Wait for Approval**
    - Assign reviewers as per the repository's guidelines.
    - Wait for feedback and make any requested changes (repeat steps 4–6 as needed).
 
-9. **PR Merged by Owner**
+10. **PR Merged by Owner**
    - Only the repository owner or someone with write/merge permissions should merge the PR after approval.
 
 ---
