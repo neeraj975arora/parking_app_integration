@@ -47,7 +47,7 @@ This command will build the Docker images for the Flask application and Nginx, a
 docker-compose up --build -d
 ```
 
-### 3. Initialize the Database
+### 3. (Option A)  Initialize the Database
 
 The first time you start the application, you need to create the database tables from the SQLAlchemy models. The following commands use Flask-Migrate to do this.
 
@@ -63,7 +63,6 @@ docker-compose exec app flask db migrate -m "Initial migration"
 # 3. Apply the migration to the database
 docker-compose exec app flask db upgrade
 ```
-
 ---
 
 ## 🗄️ Populating the Database with Initial Data
@@ -77,6 +76,25 @@ docker cp populate_parking_data.sql backend-db-1:/populate_parking_data.sql
 # Execute the SQL script inside the database container
 docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /populate_parking_data.sql
 ```
+
+### 4.(Option B) Initialize the Database
+The first time you start the application, you need to create the database tables from the SQLAlchemy models. The following commands use Flask-Migrate to do this.
+
+Run these commands one by one:
+
+```sh
+# 1. Initialize/Copy the database environment (only needs to be run once ever)
+
+docker cp init_db.sql backend-db-1:/init_db.sql
+
+docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /init_db.sql
+
+# 3. Populate the data to the database container
+
+ docker cp seed_data.sql backend-db-1:/seed_data.sql
+
+docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /seed_data.sql
+
 
 Your application is now running!
 
@@ -102,6 +120,12 @@ These tests check the application's internal logic using an in-memory database. 
 
 ```sh
 docker-compose exec app pytest
+```
+
+``` This command is used to check the database in a container
+
+docker-compose exec db psql -U parking_user -d parking_db 
+
 ```
 
 ### End-to-End Test (e2e_test.py)
