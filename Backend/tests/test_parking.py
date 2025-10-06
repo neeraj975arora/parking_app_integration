@@ -51,6 +51,42 @@ def test_get_parking_lots(client, auth_headers):
     WHEN a GET request is sent to '/parking/lots'
     THEN check that a '200' status code is returned and the list contains the parking lot.
     """
+    # First create a parking lot
+    create_response = client.post('/parking/lots',
+                                 headers=auth_headers,
+                                 data=json.dumps(dict(
+                                     name='My Test Lot',
+                                     address='123 Pytest Ave',
+                                     city='Testville',
+                                     landmark='Near Test Landmark',
+                                     latitude=12.345,
+                                     longitude=67.890,
+                                     physical_appearance='Multi-storey',
+                                     parking_ownership='Private',
+                                     parking_surface='Concrete',
+                                     has_cctv='Yes',
+                                     has_boom_barrier='Yes',
+                                     ticket_generated='Yes',
+                                     entry_exit_gates='2',
+                                     weekly_off='Sunday',
+                                     parking_timing='24x7',
+                                     vehicle_types='Car,Bike',
+                                     car_capacity=50,
+                                     available_car_slots=50,
+                                     two_wheeler_capacity=100,
+                                     available_two_wheeler_slots=100,
+                                     parking_type='Open',
+                                     payment_modes='Cash,Card,UPI',
+                                     car_parking_charge='20/hr',
+                                     two_wheeler_parking_charge='10/hr',
+                                     allows_prepaid_passes='Yes',
+                                     provides_valet_services='No',
+                                     value_added_services='Car Wash'
+                                 )),
+                                 content_type='application/json')
+    assert create_response.status_code == 201
+    
+    # Now get the parking lots
     response = client.get('/parking/lots', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -64,7 +100,45 @@ def test_create_floor(client, auth_headers):
     WHEN a POST request is sent to '/parking/lots/1/floors'
     THEN check that a '201' status code is returned and a new floor is created.
     """
-    response = client.post('/parking/lots/1/floors',
+    # First create a parking lot
+    create_response = client.post('/parking/lots',
+                                 headers=auth_headers,
+                                 data=json.dumps(dict(
+                                     name='My Test Lot',
+                                     address='123 Pytest Ave',
+                                     city='Testville',
+                                     landmark='Near Test Landmark',
+                                     latitude=12.345,
+                                     longitude=67.890,
+                                     physical_appearance='Multi-storey',
+                                     parking_ownership='Private',
+                                     parking_surface='Concrete',
+                                     has_cctv='Yes',
+                                     has_boom_barrier='Yes',
+                                     ticket_generated='Yes',
+                                     entry_exit_gates='2',
+                                     weekly_off='Sunday',
+                                     parking_timing='24x7',
+                                     vehicle_types='Car,Bike',
+                                     car_capacity=50,
+                                     available_car_slots=50,
+                                     two_wheeler_capacity=100,
+                                     available_two_wheeler_slots=100,
+                                     parking_type='Open',
+                                     payment_modes='Cash,Card,UPI',
+                                     car_parking_charge='20/hr',
+                                     two_wheeler_parking_charge='10/hr',
+                                     allows_prepaid_passes='Yes',
+                                     provides_valet_services='No',
+                                     value_added_services='Car Wash'
+                                 )),
+                                 content_type='application/json')
+    assert create_response.status_code == 201
+    lot_data = json.loads(create_response.data)
+    lot_id = lot_data['id']
+    
+    # Now create a floor
+    response = client.post(f'/parking/lots/{lot_id}/floors',
                            headers=auth_headers,
                            data=json.dumps(dict(name='Floor 1')),
                            content_type='application/json')
@@ -78,7 +152,54 @@ def test_create_row(client, auth_headers):
     WHEN a POST request is sent to '/parking/floors/1/rows'
     THEN check that a '201' status code is returned and a new row is created.
     """
-    response = client.post('/parking/floors/1/rows',
+    # First create a parking lot
+    create_lot_response = client.post('/parking/lots',
+                                     headers=auth_headers,
+                                     data=json.dumps(dict(
+                                         name='My Test Lot',
+                                         address='123 Pytest Ave',
+                                         city='Testville',
+                                         landmark='Near Test Landmark',
+                                         latitude=12.345,
+                                         longitude=67.890,
+                                         physical_appearance='Multi-storey',
+                                         parking_ownership='Private',
+                                         parking_surface='Concrete',
+                                         has_cctv='Yes',
+                                         has_boom_barrier='Yes',
+                                         ticket_generated='Yes',
+                                         entry_exit_gates='2',
+                                         weekly_off='Sunday',
+                                         parking_timing='24x7',
+                                         vehicle_types='Car,Bike',
+                                         car_capacity=50,
+                                         available_car_slots=50,
+                                         two_wheeler_capacity=100,
+                                         available_two_wheeler_slots=100,
+                                         parking_type='Open',
+                                         payment_modes='Cash,Card,UPI',
+                                         car_parking_charge='20/hr',
+                                         two_wheeler_parking_charge='10/hr',
+                                         allows_prepaid_passes='Yes',
+                                         provides_valet_services='No',
+                                         value_added_services='Car Wash'
+                                     )),
+                                     content_type='application/json')
+    assert create_lot_response.status_code == 201
+    lot_data = json.loads(create_lot_response.data)
+    lot_id = lot_data['id']
+    
+    # Create a floor
+    create_floor_response = client.post(f'/parking/lots/{lot_id}/floors',
+                                       headers=auth_headers,
+                                       data=json.dumps(dict(name='Floor 1')),
+                                       content_type='application/json')
+    assert create_floor_response.status_code == 201
+    floor_data = json.loads(create_floor_response.data)
+    floor_id = floor_data['id']
+    
+    # Now create a row
+    response = client.post(f'/parking/floors/{floor_id}/rows',
                            headers=auth_headers,
                            data=json.dumps(dict(name='Row A')),
                            content_type='application/json')
@@ -92,7 +213,63 @@ def test_create_slot(client, auth_headers):
     WHEN a POST request is sent to '/parking/rows/1/slots'
     THEN check that a '201' status code is returned and a new slot is created.
     """
-    response = client.post('/parking/rows/1/slots',
+    # First create a parking lot
+    create_lot_response = client.post('/parking/lots',
+                                     headers=auth_headers,
+                                     data=json.dumps(dict(
+                                         name='My Test Lot',
+                                         address='123 Pytest Ave',
+                                         city='Testville',
+                                         landmark='Near Test Landmark',
+                                         latitude=12.345,
+                                         longitude=67.890,
+                                         physical_appearance='Multi-storey',
+                                         parking_ownership='Private',
+                                         parking_surface='Concrete',
+                                         has_cctv='Yes',
+                                         has_boom_barrier='Yes',
+                                         ticket_generated='Yes',
+                                         entry_exit_gates='2',
+                                         weekly_off='Sunday',
+                                         parking_timing='24x7',
+                                         vehicle_types='Car,Bike',
+                                         car_capacity=50,
+                                         available_car_slots=50,
+                                         two_wheeler_capacity=100,
+                                         available_two_wheeler_slots=100,
+                                         parking_type='Open',
+                                         payment_modes='Cash,Card,UPI',
+                                         car_parking_charge='20/hr',
+                                         two_wheeler_parking_charge='10/hr',
+                                         allows_prepaid_passes='Yes',
+                                         provides_valet_services='No',
+                                         value_added_services='Car Wash'
+                                     )),
+                                     content_type='application/json')
+    assert create_lot_response.status_code == 201
+    lot_data = json.loads(create_lot_response.data)
+    lot_id = lot_data['id']
+    
+    # Create a floor
+    create_floor_response = client.post(f'/parking/lots/{lot_id}/floors',
+                                       headers=auth_headers,
+                                       data=json.dumps(dict(name='Floor 1')),
+                                       content_type='application/json')
+    assert create_floor_response.status_code == 201
+    floor_data = json.loads(create_floor_response.data)
+    floor_id = floor_data['id']
+    
+    # Create a row
+    create_row_response = client.post(f'/parking/floors/{floor_id}/rows',
+                                     headers=auth_headers,
+                                     data=json.dumps(dict(name='Row A')),
+                                     content_type='application/json')
+    assert create_row_response.status_code == 201
+    row_data = json.loads(create_row_response.data)
+    row_id = row_data['id']
+    
+    # Now create a slot
+    response = client.post(f'/parking/rows/{row_id}/slots',
                            headers=auth_headers,
                            data=json.dumps(dict(name='A1')),
                            content_type='application/json')

@@ -260,11 +260,11 @@ def login():
         
     email = data.get('user_email', '').strip()
     password = data.get('user_password', '')
-    requested_role = data.get('role', '').strip()
+    requested_role = data.get('role', 'user').strip()  # Default to 'user' if not provided
     
-    if not email or not password or not requested_role:
-        logger.warning(f"Missing required fields in login: email={bool(email)}, password={bool(password)}, role={bool(requested_role)}")
-        return jsonify({"msg": "Email, password, and role are required"}), 400
+    if not email or not password:
+        logger.warning(f"Missing required fields in login: email={bool(email)}, password={bool(password)}")
+        return jsonify({"msg": "Email and password are required"}), 400
     
     # Validate role
     if requested_role not in ['user', 'admin', 'super_admin']:

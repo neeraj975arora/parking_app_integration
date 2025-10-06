@@ -26,10 +26,11 @@ def register_user(client, role='user', email=None, phone=None, super_admin_token
         resp = client.post('/auth/register', data=json.dumps(data), content_type='application/json')
         return resp
 
-def login_user(client, email, password='password'):
+def login_user(client, email, password='password', role='user'):
     resp = client.post('/auth/login', data=json.dumps({
         'user_email': email,
-        'user_password': password
+        'user_password': password,
+        'role': role
     }), content_type='application/json')
     return resp
 
@@ -45,7 +46,7 @@ def test_admin_registration_by_super_admin(client):
     super_admin_phone = f'1111{unique_id[:6]}'
     reg_resp = register_user(client, role='super_admin', email=super_admin_email, phone=super_admin_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, super_admin_email)
+    resp = login_user(client, super_admin_email, password='password', role='super_admin')
     assert resp.status_code == 200
     super_admin_token = json.loads(resp.data)['access_token']
     admin_email = f'admin_{unique_id}@example.com'
@@ -56,7 +57,7 @@ def test_admin_registration_by_super_admin(client):
     data = json.loads(reg_resp.data)
     assert data['msg'] == 'Admin registered successfully'
     assert data['role'] == 'admin'
-    resp = login_user(client, admin_email, admin_password)
+    resp = login_user(client, admin_email, password=admin_password, role='admin')
     assert resp.status_code == 200
     login_data = json.loads(resp.data)
     assert login_data['role'] == 'admin'
@@ -69,7 +70,7 @@ def test_admin_registration_forbidden_for_non_super_admin(client):
     super_admin_phone = f'3333{unique_id[:6]}'
     reg_resp = register_user(client, role='super_admin', email=super_admin_email, phone=super_admin_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, super_admin_email)
+    resp = login_user(client, super_admin_email, password='password', role='super_admin')
     assert resp.status_code == 200
     super_admin_token = json.loads(resp.data)['access_token']
     admin_email = f'admin_forbidden_{unique_id}@example.com'
@@ -77,14 +78,14 @@ def test_admin_registration_forbidden_for_non_super_admin(client):
     admin_password = 'adminpass'
     reg_resp = register_user(client, role='admin', email=admin_email, phone=admin_phone, super_admin_token=super_admin_token, password=admin_password)
     assert reg_resp.status_code == 201
-    resp = login_user(client, admin_email, admin_password)
+    resp = login_user(client, admin_email, password=admin_password, role='admin')
     assert resp.status_code == 200
     admin_token = json.loads(resp.data)['access_token']
     user_email = f'user_forbidden_{unique_id}@example.com'
     user_phone = f'5555{unique_id[:6]}'
     reg_resp = register_user(client, role='user', email=user_email, phone=user_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, user_email)
+    resp = login_user(client, user_email, password='password', role='user')
     assert resp.status_code == 200
     user_token = json.loads(resp.data)['access_token']
     payload = {
@@ -112,7 +113,7 @@ def test_admin_registration_duplicate_email_phone(client):
     super_admin_phone = f'7777{unique_id[:6]}'
     reg_resp = register_user(client, role='super_admin', email=super_admin_email, phone=super_admin_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, super_admin_email)
+    resp = login_user(client, super_admin_email, password='password', role='super_admin')
     assert resp.status_code == 200
     super_admin_token = json.loads(resp.data)['access_token']
     admin_email = f'admin_dup_{unique_id}@example.com'
@@ -148,9 +149,11 @@ def test_admin_registration_duplicate_email_phone(client):
 def get_super_admin_and_token(client, unique_id):
     super_admin_email = f'superadmin_{unique_id}@example.com'
     super_admin_phone = f'1111{unique_id[:6]}'
+    
+    # Register new super admin (should work since database is clean for each test)
     reg_resp = register_user(client, role='super_admin', email=super_admin_email, phone=super_admin_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, super_admin_email)
+    resp = login_user(client, super_admin_email, password='password', role='super_admin')
     assert resp.status_code == 200
     super_admin_token = json.loads(resp.data)['access_token']
     return super_admin_token
@@ -161,7 +164,7 @@ def get_admin_and_token(client, unique_id, super_admin_token):
     admin_password = 'adminpass'
     reg_resp = register_user(client, role='admin', email=admin_email, phone=admin_phone, super_admin_token=super_admin_token, password=admin_password)
     assert reg_resp.status_code == 201
-    resp = login_user(client, admin_email, admin_password)
+    resp = login_user(client, admin_email, password=admin_password, role='admin')
     assert resp.status_code == 200
     admin_token = json.loads(resp.data)['access_token']
     admin_id = json.loads(resp.data)['user_id']
@@ -185,13 +188,13 @@ def test_admin_lot_assignment_flow(client):
     db.session.commit()
     lot_id = lot.id
     # Assign lot to admin (super_admin only)
-    resp = client.post('/admin/assign_lot',
+    resp = client.post('/admin/assign_existing_lot',
                        data=json.dumps({'admin_id': admin_id, 'parking_lot_id': lot_id}),
                        headers={'Authorization': f'Bearer {super_admin_token}'},
                        content_type='application/json')
     assert resp.status_code == 201
     # Try assigning as admin (should fail)
-    resp = client.post('/admin/assign_lot',
+    resp = client.post('/admin/assign_existing_lot',
                        data=json.dumps({'admin_id': admin_id, 'parking_lot_id': lot_id}),
                        headers={'Authorization': f'Bearer {admin_token}'},
                        content_type='application/json')
@@ -200,7 +203,8 @@ def test_admin_lot_assignment_flow(client):
     resp = client.get(f'/admin/admin_lots/{admin_id}', headers={'Authorization': f'Bearer {admin_token}'})
     assert resp.status_code == 200
     data = json.loads(resp.data)
-    assert lot_id in data['parking_lot_ids']
+    assigned_lot_ids = [lot['parkinglot_id'] for lot in data['assigned_lots']]
+    assert lot_id in assigned_lot_ids
     # Remove assignment (super_admin only)
     resp = client.delete('/admin/remove_assignment',
                          data=json.dumps({'admin_id': admin_id, 'parking_lot_id': lot_id}),
@@ -569,7 +573,7 @@ def test_admin_closure_rbac(client):
     user_phone = f'8888{unique_id[:6]}'
     reg_resp = register_user(client, role='user', email=user_email, phone=user_phone)
     assert reg_resp.status_code == 201
-    resp = login_user(client, user_email)
+    resp = login_user(client, user_email, password='password', role='user')
     assert resp.status_code == 200
     user_token = json.loads(resp.data)['access_token']
     # Try POST as user

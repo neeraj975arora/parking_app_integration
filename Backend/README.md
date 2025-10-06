@@ -16,38 +16,44 @@ This project is the complete backend for a smart parking system, including a RES
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
-## How to Run the Application
-
-Follow these steps to get the application running on your local machine.
-
-### 1. Set Up Environment Variables
-
-The application uses a `.env` file to manage environment variables. An example file (`.env.example`) is provided.
-
-First, make a copy of the example file:
-
-```sh
-# For Windows (Command Prompt)
-copy .env.example .env
-
-# For Windows (PowerShell)
-cp .env.example .env
-
-# For Linux/macOS
-cp .env.example .env
-```
-
-The default values in the `.env` file are pre-configured to work with the `docker-compose.yml` setup, so you don't need to change anything unless you want to customize the database credentials or secret keys.
-
-### 2. Build and Start the Containers
+### 1. Build and Start the Containers
 
 This command will build the Docker images for the Flask application and Nginx, and start all the services (app, database, proxy) in the background.
 
+### Check any other container is not running use these commands
 ```sh
-docker-compose up --build -d
+docker ps -a (We will show all the containers in current docker run time)
+docker-compose ps
 ```
 
-### 3. (Option A)  Initialize the Database
+### To see a docker volume
+```
+docker volume ls
+```
+
+
+### If you want to remove all the containerthen you can use this command
+
+```sh
+docker rm $(docker ps -aq)
+```
+
+### Build the container
+```
+docker-compose up --build -d
+```
+### Down the cotainers
+
+```
+docker-compose down
+```
+### To see logs in a particular container
+
+```
+docker-compose logs -f (container<name>)
+```
+
+### 2. (Option A)  Initialize the Database
 
 The first time you start the application, you need to create the database tables from the SQLAlchemy models. The following commands use Flask-Migrate to do this.
 
@@ -89,13 +95,15 @@ docker cp init_db.sql backend-db-1:/init_db.sql
 
 docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /init_db.sql
 
-# 3. Populate the data to the database container
+# 2. Populate the data to the database container
 
- docker cp seed_data.sql backend-db-1:/seed_data.sql
+docker cp seed_data.sql backend-db-1:/seed_data.sql
 
 docker exec -it backend-db-1 psql -U parking_user -d parking_db -f /seed_data.sql
 
+```
 
+```sh
 Your application is now running!
 
 ## Accessing the Application
@@ -110,6 +118,10 @@ Once the services are running, you can access the application in your web browse
   - **URL:** `http://localhost/apidocs`
   - **Description:** This is an interactive page where you can see all available API endpoints, their required parameters, and test them directly from your browser. This is the primary tool for API testing.
 
+```
+
+
+
 ## Running the Tests
 
 The project includes two types of tests.
@@ -121,11 +133,26 @@ These tests check the application's internal logic using an in-memory database. 
 ```sh
 docker-compose exec app pytest
 ```
+### To run a particular Single pytest File/Script
+```sh
+docker-compose exec app pytest tests/test_admin_api.py
 
-``` This command is used to check the database in a container
+### To run a particular Single pytest function within a file/Script
+```
+docker-compose exec app pytest tests/test_admin_api.py::test_vehicle_type_billing_flow -v
+```
 
+
+### This command is used to check the database in a container
+
+```
 docker-compose exec db psql -U parking_user -d parking_db 
+```
 
+### See all the tables in a database
+
+```sh
+\dt
 ```
 
 ### End-to-End Test (e2e_test.py)

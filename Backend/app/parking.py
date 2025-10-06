@@ -470,7 +470,7 @@ def delete_floor(floor_id):
 # Row CRUD Endpoints
 @parking_bp.route('/floors/<int:floor_id>/rows', methods=['POST'])
 @role_required("user")
-def create__row(floor_id):
+def create_row(floor_id):
     """
     Create a new row within a floor.
     ---

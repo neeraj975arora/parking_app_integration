@@ -20,6 +20,104 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 # Authentication is now handled by centralized auth_middleware
 
+@admin_bp.route('/register_admin', methods=['POST'])
+@role_required("super_admin")
+def register_admin():
+    """
+    Register a new admin user
+    ---
+    tags:
+      - Admin
+    description: |
+      Note: You must use the Authorize button and provide a valid JWT as a Bearer token in the Authorization header.
+      
+      Register a new admin user. Only super_admin can register admins.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - user_name
+            - user_email
+            - user_password
+            - user_phone_no
+            - user_address
+          properties:
+            user_name:
+              type: string
+            user_email:
+              type: string
+            user_password:
+              type: string
+            user_phone_no:
+              type: string
+            user_address:
+              type: string
+    responses:
+      201:
+        description: Admin registered successfully
+        schema:
+          type: object
+          properties:
+            msg:
+              type: string
+            role:
+              type: string
+      400:
+        description: Invalid input or missing fields
+      409:
+        description: Admin with this email or phone already exists
+    security:
+      - Bearer: []
+    """
+    data = request.get_json() or {}
+    logger.debug(f"POST /admin/register_admin called with data: {data}")
+    
+    try:
+        # Required fields
+        required_fields = ['user_name', 'user_email', 'user_password', 'user_phone_no', 'user_address']
+        for field in required_fields:
+            if not data.get(field):
+                logger.warning(f"Missing required field: {field}")
+                return jsonify({"error": f"Field '{field}' is required."}), 400
+
+        # Check if admin with email already exists
+        if User.query.filter_by(user_email=data.get('user_email')).first():
+            logger.warning(f"Admin registration attempt with existing email: {data.get('user_email')}")
+            return jsonify({"error": "An admin with this email already exists."}), 409
+
+        # Check if admin with phone already exists
+        if User.query.filter_by(user_phone_no=data.get('user_phone_no')).first():
+            logger.warning(f"Admin registration attempt with existing phone: {data.get('user_phone_no')}")
+            return jsonify({"error": "An admin with this phone number already exists."}), 409
+
+        # Create new admin user
+        logger.info(f"Creating new admin user with email: {data.get('user_email')}")
+        new_admin = User(
+            user_name=data.get('user_name'),
+            user_email=data.get('user_email'),
+            user_phone_no=data.get('user_phone_no'),
+            user_address=data.get('user_address'),
+            role='admin'
+        )
+        new_admin.set_password(data.get('user_password'))
+        
+        db.session.add(new_admin)
+        db.session.commit()
+        
+        logger.info(f"Admin created successfully with user_id: {new_admin.user_id}")
+        return jsonify({
+            "msg": "Admin registered successfully",
+            "role": "admin"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Failed to create admin: {str(e)}")
+        return jsonify({"error": f"Failed to create admin: {str(e)}"}), 500
+
 @admin_bp.route('/assign_lot', methods=['POST'])
 @role_required("super_admin")
 def assign_lot_to_admin():
@@ -188,6 +286,101 @@ def assign_lot_to_admin():
         db.session.rollback()
         logger.exception(f"Failed to create admin and assign lots: {str(e)}")
         return jsonify({"error": f"Failed to create admin: {str(e)}"}), 500
+
+
+@admin_bp.route('/assign_existing_lot', methods=['POST'])
+@role_required("super_admin")
+def assign_existing_lot_to_admin():
+    """
+    Assign an existing parking lot to an existing admin
+    ---
+    tags:
+      - Admin
+    description: |
+      Assign an existing parking lot to an existing admin user.
+    parameters:
+      - in: body
+        name: assignment_data
+        required: true
+        schema:
+          type: object
+          required:
+            - admin_id
+            - parking_lot_id
+          properties:
+            admin_id:
+              type: integer
+              description: ID of the admin user
+            parking_lot_id:
+              type: integer
+              description: ID of the parking lot to assign
+    responses:
+      201:
+        description: Lot assigned successfully
+      400:
+        description: Invalid input or missing fields
+      404:
+        description: Admin or parking lot not found
+      409:
+        description: Lot already assigned
+    security:
+      - Bearer: []
+    """
+    data = request.get_json() or {}
+    logger.debug(f"POST /admin/assign_existing_lot called with data: {data}")
+    
+    try:
+        # Required fields
+        admin_id = data.get('admin_id')
+        parking_lot_id = data.get('parking_lot_id')
+        
+        if not admin_id or not parking_lot_id:
+            logger.warning("Missing required fields: admin_id or parking_lot_id")
+            return jsonify({"error": "admin_id and parking_lot_id are required"}), 400
+        
+        # Validate admin exists and is an admin
+        admin = User.query.filter_by(user_id=admin_id, role='admin').first()
+        if not admin:
+            logger.warning(f"Admin with ID {admin_id} not found")
+            return jsonify({"error": "Admin not found"}), 404
+        
+        # Validate parking lot exists
+        parking_lot = ParkingLotDetails.query.filter_by(id=parking_lot_id).first()
+        if not parking_lot:
+            logger.warning(f"Parking lot with ID {parking_lot_id} not found")
+            return jsonify({"error": "Parking lot not found"}), 404
+        
+        # Check if lot is already assigned to this admin
+        existing_assignment = AdminParkingLot.query.filter_by(
+            admin_id=admin_id, 
+            parking_lot_id=parking_lot_id
+        ).first()
+        
+        if existing_assignment:
+            logger.warning(f"Lot {parking_lot_id} already assigned to admin {admin_id}")
+            return jsonify({"error": "Lot already assigned to this admin"}), 409
+        
+        # Create assignment
+        assignment = AdminParkingLot(
+            admin_id=admin_id,
+            parking_lot_id=parking_lot_id,
+            assigned_date=datetime.now().date()
+        )
+        
+        db.session.add(assignment)
+        db.session.commit()
+        
+        logger.info(f"Successfully assigned lot {parking_lot_id} to admin {admin_id}")
+        return jsonify({
+            "message": "Lot assigned successfully",
+            "admin_id": admin_id,
+            "parking_lot_id": parking_lot_id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Failed to assign lot to admin: {str(e)}")
+        return jsonify({"error": f"Failed to assign lot: {str(e)}"}), 500
 
 
 @admin_bp.route('/admin_lots/all', methods=['GET'])
@@ -1133,137 +1326,116 @@ def vehicle_checkin():
         schema:
           type: object
           required:
-            - user_id
-            - parkinglot_id
+            - vehicle_reg_no
+            - slot_id
+            - lot_id
+            - vehicle_type
           properties:
-            user_id:
+            vehicle_reg_no:
+              type: string
+              description: "Vehicle registration number"
+            slot_id:
               type: integer
-              description: "User ID for the parking session"
-            parkinglot_id:
+              description: "Slot ID where vehicle will be parked"
+            lot_id:
               type: integer
               description: "Parking lot ID where vehicle will be parked"
-            vehicle_no:
+            vehicle_type:
               type: string
-              description: "Vehicle registration number (optional)"
+              description: "Type of vehicle (Car, Two-Wheeler, etc.)"
     responses:
       200:
         description: Vehicle checked in successfully
         schema:
           type: object
           properties:
-            ticket_id:
+            session_id:
               type: string
-            floor_name:
-              type: integer
-            row_name:
-              type: string
-            slot_name:
-              type: string
-            status:
-              type: string
-            start_time:
-              type: string
-              format: date-time
       400:
         description: Missing required fields or invalid input
       404:
-        description: Parking lot not found or no available slots
+        description: Slot not found or not available
       409:
-        description: User already has active session
+        description: Slot occupied or vehicle already checked in
     security:
       - Bearer: []
     """
     data = request.get_json() or {}
     logger.debug(f"POST /admin/session/checkin called with data: {data}")
     
-    user_id = data.get('user_id')
-    parkinglot_id = data.get('parkinglot_id')
-    vehicle_no = data.get('vehicle_no', '')  # Optional field
+    vehicle_reg_no = data.get('vehicle_reg_no')
+    slot_id = data.get('slot_id')
+    lot_id = data.get('lot_id')
+    vehicle_type = data.get('vehicle_type')
     
     # Validate required fields
-    if not user_id or not parkinglot_id:
-        logger.warning(f"Missing required fields: user_id={user_id}, parkinglot_id={parkinglot_id}")
+    if not all([vehicle_reg_no, slot_id, lot_id, vehicle_type]):
+        logger.warning(f"Missing required fields: vehicle_reg_no={bool(vehicle_reg_no)}, slot_id={bool(slot_id)}, lot_id={bool(lot_id)}, vehicle_type={bool(vehicle_type)}")
         return jsonify({
-            "error": "user_id and parkinglot_id are required",
+            "error": "vehicle_reg_no, slot_id, lot_id, and vehicle_type are required",
             "status": "failed"
         }), 400
     
     try:
-        user_id = int(user_id)
-        parkinglot_id = int(parkinglot_id)
-        logger.debug(f"Converted parameters: user_id={user_id}, parkinglot_id={parkinglot_id}")
+        slot_id = int(slot_id)
+        lot_id = int(lot_id)
+        logger.debug(f"Converted parameters: slot_id={slot_id}, lot_id={lot_id}")
     except (ValueError, TypeError) as e:
         logger.error(f"Invalid parameter types: {str(e)}")
         return jsonify({
-            "error": "user_id and parkinglot_id must be integers",
+            "error": "slot_id and lot_id must be integers",
             "status": "failed"
         }), 400
     
-    # Validate parking lot exists
-    lot = ParkingLotDetails.query.filter_by(id=parkinglot_id).first()
-    if not lot:
-        logger.warning(f"Parking lot not found with ID: {parkinglot_id}")
+    # Validate slot exists and is available
+    slot = Slot.query.filter_by(id=slot_id, parkinglot_id=lot_id).first()
+    if not slot:
+        logger.warning(f"Slot not found with ID: {slot_id} in lot: {lot_id}")
         return jsonify({
-            "error": "Parking lot not found",
+            "error": "Slot not found",
             "status": "failed"
         }), 404
     
-    # Check if user already has active session
-    active_session = ParkingSession.query.filter_by(user_id=user_id, end_time=None).first()
-    if active_session:
-        logger.warning(f"User {user_id} already has active session: {active_session.ticket_id}")
+    if slot.status != 0:  # Slot is occupied
+        logger.warning(f"Slot {slot_id} is already occupied")
         return jsonify({
-            "error": "User already has an active parking session",
+            "error": "Slot is already occupied",
+            "status": "failed"
+        }), 409
+    
+    # Check if vehicle already has active session
+    active_session = ParkingSession.query.filter_by(vehicle_reg_no=vehicle_reg_no, end_time=None).first()
+    if active_session:
+        logger.warning(f"Vehicle {vehicle_reg_no} already has active session: {active_session.ticket_id}")
+        return jsonify({
+            "error": "Vehicle already has an active parking session",
             "status": "failed"
         }), 409
     
     try:
-        # Find an available slot in the parking lot
-        available_slot = Slot.query.filter_by(
-            parkinglot_id=parkinglot_id,
-            status=0  # Available
-        ).first()
-        
-        if not available_slot:
-            logger.warning(f"No available slots in parking lot: {parkinglot_id}")
-            return jsonify({
-                "error": "Parking Full",
-                "status": "failed"
-            }), 404
-        
-        # Get slot details for response
-        slot_row = Row.query.filter_by(id=available_slot.row_id).first()
-        slot_floor = Floor.query.filter_by(id=slot_row.floor_id).first() if slot_row else None
-        
         # Create new session
-        ticket_id = f"PK{str(uuid.uuid4().hex)[:6].upper()}"
+        ticket_id = str(uuid.uuid4())
         session = ParkingSession(
             ticket_id=ticket_id,
-            parkinglot_id=parkinglot_id,
-            slot_id=available_slot.id,
-            user_id=user_id,
+            parkinglot_id=lot_id,
+            slot_id=slot_id,
+            vehicle_reg_no=vehicle_reg_no,
             start_time=datetime.utcnow(),
-            vehicle_type="Car",  # Default, can be enhanced later
-            vehicle_reg_no=vehicle_no if vehicle_no else f"USER_{user_id}"  # Use provided vehicle_no or fallback
+            vehicle_type=vehicle_type
         )
         
         # Update slot status
-        available_slot.status = 1  # Mark slot as occupied
-        available_slot.vehicle_reg_no = vehicle_no if vehicle_no else f"USER_{user_id}"
-        available_slot.ticket_id = ticket_id
+        slot.status = 1  # Mark slot as occupied
+        slot.vehicle_reg_no = vehicle_reg_no
+        slot.ticket_id = ticket_id
         
         db.session.add(session)
         db.session.commit()
         
-        logger.info(f"Vehicle check-in successful: ticket_id={ticket_id}, user_id={user_id}, slot_id={available_slot.id}")
+        logger.info(f"Vehicle check-in successful: ticket_id={ticket_id}, vehicle_reg_no={vehicle_reg_no}, slot_id={slot_id}")
         
         return jsonify({
-            "ticket_id": ticket_id,
-            "floor_name": slot_floor.id if slot_floor else 1,
-            "row_name": slot_row.name if slot_row else "A",
-            "slot_name": available_slot.name,
-            "status": "active",
-            "start_time": session.start_time.isoformat() + 'Z'
+            "session_id": ticket_id
         }), 200
         
     except Exception as e:
@@ -1294,84 +1466,52 @@ def vehicle_checkout():
         schema:
           type: object
           required:
-            - ticket_id
+            - vehicle_reg_no
           properties:
-            ticket_id:
+            vehicle_reg_no:
               type: string
-              description: "Ticket ID of the active session to checkout"
-            vehicle_no:
-              type: string
-              description: "Vehicle registration number (optional, for verification)"
+              description: "Vehicle registration number to checkout"
     responses:
       200:
         description: Vehicle checked out successfully
         schema:
           type: object
           properties:
-            message:
-              type: string
-            ticket_id:
-              type: string
-            slot_location:
-              type: object
-              properties:
-                floor_name:
-                  type: integer
-                row_name:
-                  type: string
-                slot_name:
-                  type: string
-            start_time:
-              type: string
-              format: date-time
-            end_time:
-              type: string
-              format: date-time
-            duration_hrs:
-              type: string
-            amount_due:
+            amount_paid:
               type: number
-            currency:
+            duration_hours:
+              type: number
+            checkout_time:
               type: string
-            status:
-              type: string
+              format: date-time
       400:
-        description: Missing ticket_id
+        description: Missing vehicle_reg_no
       404:
-        description: Invalid or already completed ticket ID
+        description: No active session found for vehicle
     security:
       - Bearer: []
     """
     data = request.get_json() or {}
     logger.debug(f"POST /admin/session/checkout called with data: {data}")
     
-    ticket_id = data.get('ticket_id')
-    vehicle_no = data.get('vehicle_no', '')  # Optional field for verification
+    vehicle_reg_no = data.get('vehicle_reg_no')
     
-    if not ticket_id:
-        logger.warning("Missing ticket_id in checkout request")
+    if not vehicle_reg_no:
+        logger.warning("Missing vehicle_reg_no in checkout request")
         return jsonify({
-            "error": "ticket_id is required",
+            "error": "vehicle_reg_no is required",
             "status": "failed"
         }), 400
     
     try:
-        # Find active session by ticket_id
-        session = ParkingSession.query.filter_by(ticket_id=ticket_id, end_time=None).first()
+        # Find active session by vehicle_reg_no
+        session = ParkingSession.query.filter_by(vehicle_reg_no=vehicle_reg_no, end_time=None).first()
         if not session:
-            logger.warning(f"Invalid or already completed ticket ID: {ticket_id}")
+            logger.warning(f"No active session found for vehicle: {vehicle_reg_no}")
             return jsonify({
-                "error": "Invalid or already completed ticket ID",
+                "error": "No active session found for this vehicle",
                 "status": "failed"
             }), 404
-        
-        # Optional vehicle number verification
-        if vehicle_no and session.vehicle_reg_no and vehicle_no != session.vehicle_reg_no:
-            logger.warning(f"Vehicle number mismatch for ticket_id: {ticket_id}. Provided: {vehicle_no}, Session: {session.vehicle_reg_no}")
-            return jsonify({
-                "error": "Vehicle number does not match the session",
-                "status": "failed"
-            }), 400
         
         # Calculate duration
         now = datetime.utcnow()
@@ -1380,20 +1520,25 @@ def vehicle_checkout():
         if duration.total_seconds() % 3600:
             duration_hours += 1  # round up to next hour
         
-        # Calculate duration in human readable format
-        total_minutes = int(duration.total_seconds() // 60)
-        hours = total_minutes // 60
-        minutes = total_minutes % 60
-        duration_str = f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
+        # Get parking lot details for billing
+        lot = ParkingLotDetails.query.filter_by(id=session.parkinglot_id).first()
         
-        # Determine rate (₹20/hour as per specs)
-        rate = 20.0  # Default rate as per USER_APP_REST_API_SPECS.md
+        # Determine rate based on vehicle type
+        if session.vehicle_type == 'Car':
+            rate_str = lot.car_parking_charge if lot and lot.car_parking_charge else '20/hr'
+        else:  # Two-Wheeler or default
+            rate_str = lot.two_wheeler_parking_charge if lot and lot.two_wheeler_parking_charge else '10/hr'
+        
+        # Extract rate from string (e.g., "20/hr" -> 20)
+        try:
+            rate = float(rate_str.split('/')[0]) if rate_str else 20.0
+        except:
+            rate = 20.0  # Default rate
+        
         amount_due = duration_hours * rate
         
-        # Get slot details for response
+        # Get slot details
         slot = Slot.query.filter_by(id=session.slot_id).first()
-        slot_row = Row.query.filter_by(id=slot.row_id).first() if slot else None
-        slot_floor = Floor.query.filter_by(id=slot_row.floor_id).first() if slot_row else None
         
         # Update session
         session.end_time = now
@@ -1427,21 +1572,11 @@ def vehicle_checkout():
         
         db.session.commit()
         
-        logger.info(f"Vehicle checkout successful: ticket_id={ticket_id}, user_id={session.user_id}, amount_due={amount_due}")
+        logger.info(f"Vehicle checkout successful: vehicle_reg_no={vehicle_reg_no}, amount_due={amount_due}")
         return jsonify({
-            "message": "Checkout successful",
-            "ticket_id": ticket_id,
-            "slot_location": {
-                "floor_name": slot_floor.id if slot_floor else 1,
-                "row_name": slot_row.name if slot_row else "A",
-                "slot_name": slot.name if slot else "Unknown"
-            },
-            "start_time": session.start_time.isoformat() + 'Z',
-            "end_time": session.end_time.isoformat() + 'Z',
-            "duration_hrs": duration_str,
-            "amount_due": int(amount_due),
-            "currency": "INR",
-            "status": "completed"
+            "amount_paid": amount_due,
+            "duration_hours": duration_hours,
+            "checkout_time": session.end_time.isoformat() + 'Z'
         }), 200
         
     except Exception as e:

@@ -12,9 +12,9 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def app():
-    """Create and configure a new app instance for each test module."""
+    """Create and configure a new app instance for each test function."""
     logger.info("Creating test app instance")
     app = create_app('testing')
     with app.app_context():
@@ -23,12 +23,12 @@ def app():
         yield app
         logger.info("Dropping database tables")
         db.drop_all()
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def client(app):
     """A test client for the app."""
     logger.info("Creating test client")
     return app.test_client()
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def auth_headers(client):
     """Get auth headers for a test user."""
     logger.info("Setting up auth headers")
@@ -48,9 +48,9 @@ def auth_headers(client):
     # Login the user
     logger.debug("Attempting user login")
     login_data = dict(
-        email='auth@example.com',  # Changed from user_email to email
-        password='password',       # Changed from user_password to password
-        role='user'                # Added role field
+        user_email='auth@example.com',  # Use correct field name
+        user_password='password',       # Use correct field name
+        role='user'                     # Added role field
     )
     response = client.post('/auth/login',
                          data=json.dumps(login_data),
