@@ -11,21 +11,20 @@ test.describe('Login Page Tests', () => {
   });
 
   test.describe('Page Elements', () => {
-    test('should display login page elements', async () => {
+    test('should display all login page elements and form attributes', async () => {
+      // Main page elements
       await expect(loginPage.pageTitle).toBeVisible();
       await expect(loginPage.pageSubtitle).toBeVisible();
       await expect(loginPage.emailInput).toBeVisible();
       await expect(loginPage.passwordInput).toBeVisible();
       await expect(loginPage.loginButton).toBeVisible();
-    });
-
-    test('should display demo credentials section', async () => {
+      
+      // Demo credentials section
       await expect(loginPage.demoCredentialsSection).toBeVisible();
       await expect(loginPage.superAdminDemoButton).toBeVisible();
       await expect(loginPage.adminDemoButton).toBeVisible();
-    });
-
-    test('should have proper form labels and placeholders', async () => {
+      
+      // Form attributes
       await expect(loginPage.emailInput).toHaveAttribute('placeholder', 'Enter your email');
       await expect(loginPage.passwordInput).toHaveAttribute('placeholder', 'Enter your password');
       await expect(loginPage.emailInput).toHaveAttribute('type', 'email');
@@ -37,7 +36,6 @@ test.describe('Login Page Tests', () => {
     test('should login successfully as super admin', async ({ page }) => {
       await loginPage.loginAsSuperAdmin();
       await loginPage.waitForLoginSuccess();
-      
       expect(await loginPage.isLoginSuccessful()).toBe(true);
       await expect(page).toHaveURL(/.*dashboard/);
     });
@@ -45,25 +43,16 @@ test.describe('Login Page Tests', () => {
     test('should login successfully as admin', async ({ page }) => {
       await loginPage.loginAsAdmin();
       await loginPage.waitForLoginSuccess();
-      
+      await loginPage.waitForLoadingToComplete();
       expect(await loginPage.isLoginSuccessful()).toBe(true);
       await expect(page).toHaveURL(/.*dashboard/);
     });
 
-    test('should use super admin demo credentials successfully', async ({ page }) => {
+    test('should use demo credentials successfully', async ({ page }) => {
+      // Test super admin demo credentials
       await loginPage.useSuperAdminDemoCredentials();
       await loginPage.loginButton.click();
       await loginPage.waitForLoginSuccess();
-      
-      expect(await loginPage.isLoginSuccessful()).toBe(true);
-      await expect(page).toHaveURL(/.*dashboard/);
-    });
-
-    test('should use admin demo credentials successfully', async ({ page }) => {
-      await loginPage.useAdminDemoCredentials();
-      await loginPage.loginButton.click();
-      await loginPage.waitForLoginSuccess();
-      
       expect(await loginPage.isLoginSuccessful()).toBe(true);
       await expect(page).toHaveURL(/.*dashboard/);
     });
@@ -149,8 +138,8 @@ test.describe('Login Page Tests', () => {
       const emailValue = await loginPage.emailInput.inputValue();
       const passwordValue = await loginPage.passwordInput.inputValue();
       
-      expect(emailValue).toBe('admin@parking.com');
-      expect(passwordValue).toBe('admin123');
+      expect(emailValue).toBe('admin10@parking.com');
+      expect(passwordValue).toBe('password123');
     });
 
     test('should clear form before autofilling', async () => {

@@ -3,10 +3,15 @@ import users from '../fixtures/users.json' assert { type: 'json' };
 export const apiEndpoints = {
   login: '/auth/login',
   dashboard: '/admin/sessions/details/all',
-  adminManagement: '/admins/admin_lots/all',
+  adminManagement: '/admin/admin_lots/all',
   liveSessions: '/admin/sessions/details/all',
   paymentCollection: '/admin/total_due',
   dailyClosure: '/admin/closure',
+  assignLot: '/admin/assign_lot',
+  removeAssignment: '/admin/remove_assignment',
+  checkin: '/admin/session/checkin',
+  checkout: '/admin/session/checkout',
+  finalizeClosure: '/admin/finalize_closure',
 };
 
 export const testUrls = {
@@ -26,8 +31,8 @@ export const testCredentials = {
     role: 'super_admin'
   },
   admin: {
-    email: 'admin@parking.com',
-    password: 'admin123',
+    email: 'admin10@parking.com',
+    password: 'password123',
     role: 'admin'
   },
   invalid: {

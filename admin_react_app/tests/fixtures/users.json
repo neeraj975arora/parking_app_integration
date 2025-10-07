@@ -5,8 +5,8 @@
     "role": "super_admin"
   },
   "admin": {
-    "email": "admin@parking.com",
-    "password": "admin123",
+    "email": "admin10@parking.com",
+    "password": "password123",
     "role": "admin"
   }
 }

@@ -2,11 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  fullyParallel: false, // run files/tests sequentially to avoid shared-state flakiness
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1, // ensure deterministic, serialized execution locally and in CI
   timeout: 120000, // 120 seconds per test
+  expect: {
+    timeout: 15000, // stabilize slow assertions across the suite
+  },
   reporter: [
     ['html', { outputFolder: '../test-results/playwright-report' }],
     ['json', { outputFile: '../test-results/results.json' }],
@@ -27,11 +30,6 @@ export default defineConfig({
     },
   ],
   webServer: [
-    {
-      command: 'cd mock-server && npm run dev',
-      port: 3001,
-      reuseExistingServer: !process.env.CI,
-    },
     {
       command: 'npm run dev',
       port: 5173,
