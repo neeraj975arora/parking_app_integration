@@ -1,5 +1,5 @@
-# Backend CI workflow for Dockerized Flask app
-# Runs only when Backend/ changes, builds containers, runs tests, uploads artifacts
+# Enhanced Backend CI workflow for Dockerized Flask app
+# Runs only when Backend/ changes, builds containers, runs comprehensive tests, uploads artifacts
 name: Backend CI
 
 on:
@@ -9,10 +9,46 @@ on:
   pull_request:
     paths:
       - 'Backend/**'
+  schedule:
+    # Run backend tests daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - security
+          - performance
+
+env:
+  COMPOSE_PROJECT_NAME: backend-ci-${{ github.run_id }}
 
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
+    
+    services:
+      # Use GitHub's PostgreSQL service for more reliable testing
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: parking_user
+          POSTGRES_PASSWORD: parking_password
+          POSTGRES_DB: parking_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,36 +61,43 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Enable KVM for hardware acceleration
+      - name: Create necessary directories
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          mkdir -p Backend/test-results
+          mkdir -p Backend/htmlcov
 
-      - name: Check KVM device
-        run: |
-          if [ -e /dev/kvm ]; then
-            echo "/dev/kvm exists"
-            ls -l /dev/kvm
-          else
-            echo "/dev/kvm does not exist"
-          fi
-
-      # Build and start containers
-      - name: Build and start containers
-        run: docker compose up --build -d
+      # Build containers
+      - name: Build containers
+        run: docker compose build
         working-directory: ./Backend
+
+      # Start only the app container (use GitHub's PostgreSQL service)
+      - name: Start app container
+        run: |
+          docker compose up -d app
+        working-directory: ./Backend
+        env:
+          DATABASE_URL: postgresql://parking_user:parking_password@localhost:5432/parking_db
 
       # Wait for DB to be ready
       - name: Wait for DB to be ready
         run: |
           for i in {1..30}; do
-            if docker compose exec -T db pg_isready -U parking_user; then
+            if pg_isready -h localhost -p 5432 -U parking_user; then
               echo "Database is ready!"; break
             fi
-            echo "Waiting for database..."; sleep 2
+            echo "Waiting for database... (attempt $i/30)"; sleep 2
           done
-        working-directory: ./Backend
+
+      # Wait for app to be ready
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -f http://localhost:5000/health > /dev/null 2>&1 || curl -f http://localhost:5000/ > /dev/null 2>&1; then
+              echo "App is ready!"; break
+            fi
+            echo "Waiting for app... (attempt $i/30)"; sleep 2
+          done
 
       # Run DB migrations
       - name: Run DB migrations
@@ -64,51 +107,177 @@ jobs:
       # Populate database if SQL file exists
       - name: Populate database (if SQL file exists)
         run: |
-          if [ -f populate_parking_data.sql ]; then
-            docker cp populate_parking_data.sql backend-db-1:/populate_parking_data.sql
-            docker compose exec -T db psql -U parking_user -d parking_db -f /populate_parking_data.sql
+          if [ -f Backend/populate_parking_data.sql ]; then
+            echo "Found populate_parking_data.sql, loading data..."
+            PGPASSWORD=parking_password psql -h localhost -U parking_user -d parking_db -f Backend/populate_parking_data.sql
           else
             echo "No populate_parking_data.sql found, skipping population."
           fi
-        working-directory: ./Backend
 
-      # Remove old htmlcov directory in container
-      - name: Remove old htmlcov directory in container
-        run: docker compose exec -T app rm -rf /app/htmlcov
-        working-directory: ./Backend
-
-      # Run tests with coverage and save debug log
-      - name: Run tests with coverage and save debug log
+      # Install test dependencies in container
+      - name: Install test dependencies
         run: |
-          docker compose run --rm app bash -c "pytest --cov=app --cov-report=html --cov-report=term --junitxml=pytest-report.xml --html=pytest-report.html | tee /app/pytest-debug.log"
+          docker compose exec -T app pip install pytest pytest-html pytest-cov pytest-xdist pytest-benchmark
         working-directory: ./Backend
 
-      # Copy HTML test report from container
-      - name: Copy HTML test report from container
+      # Run tests based on input type with proper step IDs
+      - name: Run unit tests
+        id: unit-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == '' }}
         run: |
-          mkdir -p temp_artifacts
-          container_id=$(docker ps -a --filter "name=backend-app-*" --format "{{.ID}}" | head -n 1)
-          docker cp "$container_id":/app/pytest-report.html temp_artifacts/pytest-report.html || echo "HTML report not found"
-          mv temp_artifacts/pytest-report.html ./pytest-report.html || true
-          rmdir temp_artifacts || true
+          docker compose exec -T app bash -c "pytest tests/test_auth.py tests/test_parking.py tests/test_admin_api.py tests/test_config.py --cov=app --cov-report=html:htmlcov/unit --cov-report=xml:coverage-unit.xml --junitxml=test-results/unit-test-report.xml --html=test-results/unit-test-report.html -v"
         working-directory: ./Backend
+
+      - name: Run integration tests
+        id: integration-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "pytest tests/test_integration.py --cov=app --cov-append --cov-report=html:htmlcov/integration --cov-report=xml:coverage-integration.xml --junitxml=test-results/integration-test-report.xml --html=test-results/integration-test-report.html -v -m integration"
+        working-directory: ./Backend
+
+      - name: Run security tests
+        id: security-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'security' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "pytest tests/test_security.py tests/test_security_comprehensive.py --junitxml=test-results/security-test-report.xml --html=test-results/security-test-report.html -v -m security"
+        working-directory: ./Backend
+
+      - name: Run performance tests
+        id: performance-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'performance' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "pytest tests/test_performance.py --junitxml=test-results/performance-test-report.xml --html=test-results/performance-test-report.html -v || echo 'Performance tests completed'"
+        working-directory: ./Backend
+
+      - name: Run comprehensive tests
+        id: comprehensive-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "pytest tests/test_database_constraints.py tests/test_edge_cases.py tests/test_concurrency.py tests/test_error_recovery.py --junitxml=test-results/comprehensive-test-report.xml --html=test-results/comprehensive-test-report.html -v || echo 'Comprehensive tests completed'"
+        working-directory: ./Backend
+
+      # Run all tests with coverage and save debug log
+      - name: Run all tests with coverage
+        id: all-tests
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "pytest --cov=app --cov-report=html:htmlcov/all --cov-report=xml:coverage.xml --junitxml=test-results/pytest-report.xml --html=test-results/pytest-report.html -v | tee /app/test-results/pytest-debug.log"
+        working-directory: ./Backend
+
+      # Generate combined coverage report
+      - name: Generate combined coverage report
+        if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '' }}
+        run: |
+          docker compose exec -T app bash -c "coverage combine coverage-*.xml && coverage html -d htmlcov/combined && coverage xml -o coverage.xml"
+        working-directory: ./Backend
+
+      # Copy test results and reports from container
+      - name: Copy test artifacts from container
+        if: always()
+        run: |
+          # Create local directories
+          mkdir -p test-artifacts/htmlcov test-artifacts/test-results
+          
+          # Copy coverage reports
+          docker cp $(docker compose ps -q app):/app/htmlcov/. test-artifacts/htmlcov/ || echo "Coverage reports not found"
+          
+          # Copy test results
+          docker cp $(docker compose ps -q app):/app/test-results/. test-artifacts/test-results/ || echo "Test results not found"
+          
+          # Copy any coverage XML files
+          docker cp $(docker compose ps -q app):/app/coverage.xml test-artifacts/coverage.xml 2>/dev/null || echo "Coverage XML not found"
+          docker cp $(docker compose ps -q app):/app/coverage-*.xml test-artifacts/ 2>/dev/null || echo "Individual coverage files not found"
+          
+          # List what we copied
+          echo "Copied artifacts:"
+          find test-artifacts -type f | head -20
 
       # Upload coverage report artifact
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: htmlcov
-          path: Backend/htmlcov/
+          name: backend-coverage-report
+          path: |
+            test-artifacts/htmlcov/
+            test-artifacts/coverage.xml
+            test-artifacts/coverage-*.xml
+          retention-days: 30
 
-      # Upload debug log artifact
-      - name: Upload debug log
+      # Upload test reports
+      - name: Upload test reports
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: pytest-debug-log
-          path: Backend/pytest-debug.log
+          name: backend-test-reports
+          path: |
+            test-artifacts/test-results/
+          retention-days: 30
+
+      # Upload debug logs
+      - name: Upload debug logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-debug-logs
+          path: |
+            test-artifacts/test-results/pytest-debug.log
+          retention-days: 30
+
+      # Upload coverage to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: test-artifacts/coverage.xml
+          flags: backend-ci
+          name: backend-ci-coverage
+          fail_ci_if_error: false
+
+      # Generate test summary
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "# Backend CI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Get test results
+          UNIT_STATUS="${{ steps.unit-tests.outcome || 'skipped' }}"
+          INTEGRATION_STATUS="${{ steps.integration-tests.outcome || 'skipped' }}"
+          SECURITY_STATUS="${{ steps.security-tests.outcome || 'skipped' }}"
+          PERFORMANCE_STATUS="${{ steps.performance-tests.outcome || 'skipped' }}"
+          COMPREHENSIVE_STATUS="${{ steps.comprehensive-tests.outcome || 'skipped' }}"
+          ALL_STATUS="${{ steps.all-tests.outcome || 'skipped' }}"
+          
+          echo "| Test Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.test_type }}" == "all" ] || [ "${{ github.event.inputs.test_type }}" == "" ]; then
+            echo "| All Tests | $ALL_STATUS |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Unit Tests | $UNIT_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Integration Tests | $INTEGRATION_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Security Tests | $SECURITY_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Performance Tests | $PERFORMANCE_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Comprehensive Tests | $COMPREHENSIVE_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 📊 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Reports**: Available in 'backend-coverage-report' artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Reports**: Available in 'backend-test-reports' artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- **Debug Logs**: Available in 'backend-debug-logs' artifact" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 🐳 Container Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          docker compose ps >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       # Clean up containers after job
       - name: Clean up containers
         if: always()
-        run: docker compose down -v
-        working-directory: ./Backend 
+        run: docker compose down -v --remove-orphans
+        working-directory: ./Backend

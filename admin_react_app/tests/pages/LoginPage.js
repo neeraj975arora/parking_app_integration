@@ -10,12 +10,12 @@ class LoginPage extends BasePage {
     
     // Error elements
     this.loginError = page.locator('.bg-red-50 .text-red-700');
-    this.emailError = page.locator('#input-user_email-error');
-    this.passwordError = page.locator('#input-user_password-error');
+    this.emailError = page.locator('text=Email is required').or(page.locator('text=Please enter a valid email'));
+    this.passwordError = page.locator('text=Password is required');
     
-    // Demo credential buttons - using CSS class selectors
-    this.superAdminDemoButton = page.locator('button.text-blue-700').filter({ hasText: 'superadmin@parking.com' });
-    this.adminDemoButton = page.locator('button.text-green-700').filter({ hasText: 'admin10@parking.com' });
+    // Demo credential buttons - using more specific selectors
+    this.superAdminDemoButton = page.locator('button[type="button"]').filter({ hasText: 'superadmin@parking.com' });
+    this.adminDemoButton = page.locator('button[type="button"]').filter({ hasText: 'admin10@parking.com' });
     
     // Page elements
     this.pageTitle = page.locator('h2:has-text("Admin Portal")');

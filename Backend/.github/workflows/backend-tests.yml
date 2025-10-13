@@ -1,0 +1,550 @@
+name: Backend Tests & Quality Assurance
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-tests.yml'
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.9'
+  POSTGRES_VERSION: '13'
+  REDIS_VERSION: '6'
+  NODE_VERSION: '18'
+
+jobs:
+  # Job 1: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: parking_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Backend/app/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      working-directory: ./Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Set up test environment
+      working-directory: ./Backend
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parking_test"
+        export JWT_SECRET_KEY="test-secret-key"
+        export RPI_API_KEY="test-api-key"
+        export FLASK_ENV="testing"
+
+    - name: Run unit tests
+      working-directory: ./Backend
+      run: |
+        pytest tests/test_auth.py tests/test_parking.py -v --tb=short --cov=app --cov-report=xml --cov-report=html
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./Backend/coverage.xml
+        flags: unit-tests
+        name: unit-tests-coverage
+
+  # Job 2: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-tests
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: parking_integration_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Backend/app/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      working-directory: ./Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Set up integration test environment
+      working-directory: ./Backend
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parking_integration_test"
+        export JWT_SECRET_KEY="integration-test-secret-key"
+        export RPI_API_KEY="integration-test-api-key"
+        export FLASK_ENV="testing"
+
+    - name: Run integration tests
+      working-directory: ./Backend
+      run: |
+        pytest tests/test_integration.py -v --tb=short --cov=app --cov-report=xml --cov-report=html -m integration
+
+    - name: Upload integration test coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./Backend/coverage.xml
+        flags: integration-tests
+        name: integration-tests-coverage
+
+  # Job 3: End-to-End Tests with Docker
+  e2e-tests:
+    name: End-to-End Tests (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [unit-tests, integration-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker images
+      working-directory: ./Backend
+      run: |
+        docker-compose build
+
+    - name: Start services
+      working-directory: ./Backend
+      run: |
+        docker-compose up -d
+        # Wait for services to be ready
+        timeout 60 bash -c 'until docker-compose exec -T app flask db upgrade; do sleep 2; done'
+
+    - name: Run database migrations
+      working-directory: ./Backend
+      run: |
+        docker-compose exec -T app flask db upgrade
+
+    - name: Populate test data
+      working-directory: ./Backend
+      run: |
+        docker-compose exec -T app python -c "
+        from app import create_app, db
+        from app.models import User
+        app = create_app('testing')
+        with app.app_context():
+            db.create_all()
+            # Create test super admin
+            super_admin = User(
+                user_name='test_super_admin',
+                user_email='superadmin@test.com',
+                user_phone_no='1111111111',
+                user_address='Test HQ',
+                role='super_admin'
+            )
+            super_admin.set_password('testpassword')
+            db.session.add(super_admin)
+            db.session.commit()
+        "
+
+    - name: Run end-to-end tests
+      working-directory: ./Backend
+      run: |
+        docker-compose exec -T app python e2e_test.py
+
+    - name: Run all tests in Docker environment
+      working-directory: ./Backend
+      run: |
+        docker-compose exec -T app pytest tests/ -v --tb=short --cov=app --cov-report=xml --cov-report=html
+
+    - name: Test API endpoints
+      working-directory: ./Backend
+      run: |
+        # Test health endpoint
+        curl -f http://localhost/health || exit 1
+        
+        # Test API documentation
+        curl -f http://localhost/apidocs || exit 1
+
+    - name: Cleanup
+      if: always()
+      working-directory: ./Backend
+      run: |
+        docker-compose down -v
+
+  # Job 4: Security Tests
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: unit-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install security testing tools
+      run: |
+        pip install bandit safety semgrep
+
+    - name: Run Bandit security linter
+      working-directory: ./Backend
+      run: |
+        bandit -r app/ -f json -o bandit-report.json || true
+        bandit -r app/ -f txt
+
+    - name: Run Safety check
+      working-directory: ./Backend
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+
+    - name: Run Semgrep security scan
+      working-directory: ./Backend
+      run: |
+        semgrep --config=auto app/ --json --output=semgrep-report.json || true
+        semgrep --config=auto app/
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          Backend/bandit-report.json
+          Backend/safety-report.json
+          Backend/semgrep-report.json
+
+  # Job 5: Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [unit-tests, integration-tests]
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: parking_performance_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      working-directory: ./Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+        pip install locust pytest-benchmark
+
+    - name: Set up performance test environment
+      working-directory: ./Backend
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parking_performance_test"
+        export JWT_SECRET_KEY="performance-test-secret-key"
+        export RPI_API_KEY="performance-test-api-key"
+        export FLASK_ENV="testing"
+
+    - name: Run performance tests
+      working-directory: ./Backend
+      run: |
+        pytest tests/test_integration.py::TestPerformanceAndLoad -v --tb=short --benchmark-only --benchmark-save=performance-results
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results
+        path: Backend/.benchmarks/
+
+  # Job 6: Code Quality and Linting
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install linting tools
+      run: |
+        pip install flake8 black isort mypy
+
+    - name: Run Black code formatter check
+      working-directory: ./Backend
+      run: |
+        black --check --diff app/ tests/
+
+    - name: Run isort import sorting check
+      working-directory: ./Backend
+      run: |
+        isort --check-only --diff app/ tests/
+
+    - name: Run Flake8 linter
+      working-directory: ./Backend
+      run: |
+        flake8 app/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 app/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run MyPy type checker
+      working-directory: ./Backend
+      run: |
+        mypy app/ --ignore-missing-imports || true
+
+  # Job 7: Database Tests
+  database-tests:
+    name: Database Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: unit-tests
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: parking_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      working-directory: ./Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Test database migrations
+      working-directory: ./Backend
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parking_db_test"
+        export JWT_SECRET_KEY="db-test-secret-key"
+        export RPI_API_KEY="db-test-api-key"
+        export FLASK_ENV="testing"
+        
+        # Test migration up
+        flask db upgrade
+        
+        # Test migration down and up again
+        flask db downgrade
+        flask db upgrade
+
+    - name: Test database constraints
+      working-directory: ./Backend
+      run: |
+        python -c "
+        from app import create_app, db
+        from app.models import User, ParkingLotDetails
+        app = create_app('testing')
+        with app.app_context():
+            db.create_all()
+            
+            # Test unique constraints
+            user1 = User(user_name='test1', user_email='test1@example.com', user_phone_no='1111111111', user_address='Test', role='user')
+            user1.set_password('password')
+            db.session.add(user1)
+            db.session.commit()
+            
+            # Try to create user with same email (should fail)
+            try:
+                user2 = User(user_name='test2', user_email='test1@example.com', user_phone_no='2222222222', user_address='Test', role='user')
+                user2.set_password('password')
+                db.session.add(user2)
+                db.session.commit()
+                assert False, 'Should have failed due to unique constraint'
+            except Exception as e:
+                print(f'Expected error: {e}')
+                db.session.rollback()
+        "
+
+  # Job 8: Regression Tests
+  regression-tests:
+    name: Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [unit-tests, integration-tests, e2e-tests]
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: parking_regression_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      working-directory: ./Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Run regression tests
+      working-directory: ./Backend
+      run: |
+        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parking_regression_test"
+        export JWT_SECRET_KEY="regression-test-secret-key"
+        export RPI_API_KEY="regression-test-api-key"
+        export FLASK_ENV="testing"
+        
+        # Run all tests to ensure no regressions
+        pytest tests/ -v --tb=short --maxfail=5
+
+  # Job 9: Test Summary and Reports
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests, security-tests, performance-tests, code-quality, database-tests, regression-tests]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate test summary
+      run: |
+        echo "# Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Jobs Status" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security Tests | ${{ needs.security-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Database Tests | ${{ needs.database-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Regression Tests | ${{ needs.regression-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Determine overall status
+        if [[ "${{ needs.unit-tests.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" && "${{ needs.e2e-tests.result }}" == "success" ]]; then
+          echo "## ✅ All Critical Tests Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## ❌ Some Critical Tests Failed" >> $GITHUB_STEP_SUMMARY
+        fi

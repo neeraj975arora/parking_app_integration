@@ -27,7 +27,7 @@
     "test:admin-management:ui": "playwright test tests/admin-management.spec.js --ui",
     "test:admin-management:report": "playwright test tests/admin-management.spec.js --reporter=html",
     "test:daily-closure": "playwright test tests/daily-closure.spec.js",
-    "test:daily-closure:headed": "playwright test tests/daily-closure.spec.js --headed",   
+    "test:daily-closure:headed": "playwright test tests/daily-closure.spec.js --headed",
     "test:live-sessions": "playwright test tests/live-sessions.spec.js",
     "test:live-sessions:headed": "playwright test tests/live-sessions.spec.js --headed",
     "test:clean": "rimraf test-results playwright-report",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.56.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

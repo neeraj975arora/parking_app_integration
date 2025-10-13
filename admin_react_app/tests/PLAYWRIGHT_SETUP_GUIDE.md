@@ -9,6 +9,13 @@ Prerequisites:
 - Project dependencies installed: `npm install`
 - **Docker backend running** (see Docker setup guide)
 
+To install Playwrite if needed:
+```
+sudo npx playwright install-deps
+             or
+npx playwright install --with-deps
+```
+
 Common commands:
 ```
 # Run the whole suite (headless)
