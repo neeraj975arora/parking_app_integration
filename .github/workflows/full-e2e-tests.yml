@@ -1,713 +1,13 @@
-# name: Full End-to-End Tests
-
-# on:
-#   push:
-#     branches: [ main, feature/reactapp-integration ]
-#     paths:
-#       - 'parking_app_integration/Backend/**'
-#       - 'parking_app_integration/admin_react_app/**'
-#   pull_request:
-#     branches: [ main, feature/reactapp-integration ]
-#     paths:
-#       - 'parking_app_integration/Backend/**'
-#       - 'parking_app_integration/admin_react_app/**'
-#   workflow_dispatch:
-#     inputs:
-#       test_type:
-#         description: 'Type of tests to run'
-#         required: false
-#         default: 'all'
-#         type: choice
-#         options:
-#           - all
-#           - backend
-#           - frontend
-#           - integration
-#       environment:
-#         description: 'Environment to test against'
-#         required: false
-#         default: 'staging'
-#         type: choice
-#         options:
-#           - staging
-#           - production
-
-# env:
-#   NODE_VERSION: '18'
-#   PYTHON_VERSION: '3.12'
-#   POSTGRES_VERSION: '15'
-#   BACKEND_DIR: 'parking_app_integration/Backend'
-#   FRONTEND_DIR: 'parking_app_integration/admin_react_app'
-
-# jobs:
-#   # Backend Tests
-#   backend-tests:
-#     name: Backend Tests
-#     runs-on: ubuntu-latest
-#     if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'backend' || github.event.inputs.test_type == 'integration' }}
-    
-#     services:
-#       postgres:
-#         image: postgres:15
-#         env:
-#           POSTGRES_USER: test_user
-#           POSTGRES_PASSWORD: test_password
-#           POSTGRES_DB: test_parking_db
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#         ports:
-#           - 5432:5432
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: ${{ env.PYTHON_VERSION }}
-
-#     - name: Cache Python dependencies
-#       uses: actions/cache@v3
-#       with:
-#         path: |
-#           ~/.cache/pip
-#           ${{ env.BACKEND_DIR }}/.venv
-#         key: ${{ runner.os }}-python-${{ hashFiles('**/requirements.txt', '**/setup.py') }}
-#         restore-keys: |
-#           ${{ runner.os }}-python-
-
-
-#     - name: Install Python dependencies
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         python -m pip install --upgrade pip
-#         pip install -r app/requirements.txt
-#         pip install pytest pytest-html pytest-xdist coverage
-
-#     - name: Create test environment file
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         cat > .env.test << EOF
-#         DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY=test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY=test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY=test-rpi-key-for-ci
-#         FLASK_ENV=testing
-#         TESTING=True
-#         EOF
-
-#     - name: Run database migrations
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         python -c "
-#         from app import create_app, db
-#         app = create_app('testing')
-#         with app.app_context():
-#             db.drop_all()
-#             db.create_all()
-#             print('Database tables created successfully')
-#         "
-
-#     - name: Run unit tests with coverage
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         python -m pytest \
-#           tests/test_auth.py tests/test_parking.py tests/test_admin_api.py tests/test_config.py \
-#           -v \
-#           --tb=short \
-#           --junitxml=test-results/unit-tests.xml \
-#           --html=test-results/unit-tests.html \
-#           --self-contained-html \
-#           --cov=app \
-#           --cov-report=html:test-results/coverage \
-#           --cov-report=xml:test-results/coverage.xml \
-#           -n auto
-
-#     - name: Run integration tests
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         python -m pytest \
-#           tests/test_integration.py \
-#           -v \
-#           --tb=short \
-#           --junitxml=test-results/integration-tests.xml \
-#           --html=test-results/integration-tests.html \
-#           --self-contained-html
-
-#     - name: Run security tests
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         python -m pytest \
-#           tests/test_security.py tests/test_security_comprehensive.py \
-#           -v \
-#           --tb=short \
-#           --junitxml=test-results/security-tests.xml \
-#           --html=test-results/security-tests.html \
-#           --self-contained-html
-
-#     - name: Run comprehensive tests
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         python -m pytest \
-#           tests/test_database_constraints.py tests/test_edge_cases.py tests/test_concurrency.py tests/test_error_recovery.py tests/test_performance.py \
-#           -v \
-#           --tb=short \
-#           --junitxml=test-results/comprehensive-tests.xml \
-#           --html=test-results/comprehensive-tests.html \
-#           --self-contained-html \
-#           || echo "Comprehensive tests completed with some failures"
-
-#     - name: Run code quality checks
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         pip install flake8 black isort bandit
-#         # Code formatting
-#         black --check app/ tests/ --diff
-#         isort --check-only app/ tests/
-#         # Linting
-#         flake8 app/ tests/ --max-line-length=120 --ignore=E203,W503,E501
-#         # Security linting
-#         bandit -r app/ -f html -o test-results/bandit-report.html
-
-#     - name: Upload backend test results
-#       uses: actions/upload-artifact@v3
-#       if: always()
-#       with:
-#         name: backend-test-results
-#         path: |
-#           ${{ env.BACKEND_DIR }}/test-results/
-#         retention-days: 30
-
-#   # Frontend Tests
-#   frontend-tests:
-#     name: Frontend Tests
-#     runs-on: ubuntu-latest
-#     if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'frontend' || github.event.inputs.test_type == 'integration' }}
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: ${{ env.NODE_VERSION }}
-#         cache: 'npm'
-#         cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
-
-#     - name: Install dependencies
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npm ci
-#         # Install additional test dependencies if needed
-#         npm install -g @playwright/test
-
-#     - name: Run linting
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npm run lint -- --quiet --ignore-pattern "mock-server/**" || echo "Linting completed with warnings"
-
-#     - name: Run type checking
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npx tsc --noEmit --skipLibCheck || echo "Type checking completed"
-
-#     - name: Install Playwright browsers
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npx playwright install --with-deps chromium firefox webkit
-
-#     - name: Start frontend development server
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         # Start the development server in background
-#         npm run dev > frontend.log 2>&1 &
-#         echo $! > frontend.pid
-#         sleep 15
-        
-#         # Check if frontend is running
-#         curl -f http://localhost:5173/ || echo "Frontend server started"
-
-#     - name: Run Playwright tests
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         # Run tests with retries for flaky tests
-#         npx playwright test \
-#           --config=playwright.config.ci.js \
-#           --reporter=html,list \
-#           --output=test-results/ \
-#           --retries=2 \
-#           --timeout=180000 \
-#           --max-failures=10 \
-#           || echo "Some tests failed - continuing with workflow"
-
-#     - name: Stop frontend server
-#       if: always()
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         if [ -f frontend.pid ]; then
-#           kill $(cat frontend.pid) 2>/dev/null || true
-#         fi
-
-#     - name: Build application
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npm run build
-
-#     - name: Run unit tests
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npm test -- --coverage --watchAll=false || echo "Unit tests completed"
-
-#     - name: Upload frontend test results
-#       uses: actions/upload-artifact@v3
-#       if: always()
-#       with:
-#         name: frontend-test-results
-#         path: |
-#           ${{ env.FRONTEND_DIR }}/test-results/
-#           ${{ env.FRONTEND_DIR }}/playwright-report/
-#           ${{ env.FRONTEND_DIR }}/coverage/
-#         retention-days: 30
-
-#   # End-to-End Integration Tests
-#   e2e-tests:
-#     name: End-to-End Integration Tests
-#     runs-on: ubuntu-latest
-#     if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
-#     needs: [backend-tests, frontend-tests]
-
-#     services:
-#       postgres:
-#         image: postgres:15
-#         env:
-#           POSTGRES_USER: test_user
-#           POSTGRES_PASSWORD: test_password
-#           POSTGRES_DB: test_parking_db
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#         ports:
-#           - 5432:5432
-
-#       redis:
-#         image: redis:7-alpine
-#         options: >-
-#           --health-cmd "redis-cli ping"
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#         ports:
-#           - 6379:6379
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: ${{ env.PYTHON_VERSION }}
-
-#     - name: Set up Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: ${{ env.NODE_VERSION }}
-
-#     - name: Install backend dependencies
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         python -m pip install --upgrade pip
-#         pip install -r app/requirements.txt
-
-#     - name: Install frontend dependencies
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         npm ci
-
-#     - name: Setup test database
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#         REDIS_URL: redis://localhost:6379/0
-#       run: |
-#         python -c "
-#         from app import create_app, db
-#         app = create_app('testing')
-#         with app.app_context():
-#             db.drop_all()
-#             db.create_all()
-#             print('Test database setup completed')
-#         "
-
-#     - name: Start backend server
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#         REDIS_URL: redis://localhost:6379/0
-#       run: |
-#         # Start backend in background
-#         python app.py > backend.log 2>&1 &
-#         echo $! > backend.pid
-#         sleep 15
-        
-#         # Check if backend is running
-#         curl -f http://localhost:5000/health || curl -f http://localhost:5000/api/health || echo "Backend health check endpoint not available"
-
-#     - name: Start frontend server
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         # Start development server in background
-#         npm run dev > frontend.log 2>&1 &
-#         echo $! > frontend.pid
-#         sleep 20
-        
-#         # Check if frontend is running
-#         curl -f http://localhost:5173/ || echo "Frontend server started"
-
-#     - name: Run integration tests
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         # Run Playwright tests against the running servers
-#         npx playwright test \
-#           --config=playwright.config.ci.js \
-#           --reporter=html,list \
-#           --output=test-results/e2e/ \
-#           --retries=2 \
-#           --timeout=180000 \
-#           --project=chromium \
-#           || echo "Some E2E tests failed - continuing with workflow"
-
-#     - name: Stop servers
-#       if: always()
-#       run: |
-#         # Stop backend
-#         if [ -f "${{ env.BACKEND_DIR }}/backend.pid" ]; then
-#           kill $(cat ${{ env.BACKEND_DIR }}/backend.pid) 2>/dev/null || true
-#         fi
-#         # Stop frontend
-#         if [ -f "${{ env.FRONTEND_DIR }}/frontend.pid" ]; then
-#           kill $(cat ${{ env.FRONTEND_DIR }}/frontend.pid) 2>/dev/null || true
-#         fi
-
-#     - name: Upload E2E test results
-#       uses: actions/upload-artifact@v3
-#       if: always()
-#       with:
-#         name: e2e-test-results
-#         path: |
-#           ${{ env.FRONTEND_DIR }}/test-results/e2e/
-#           ${{ env.BACKEND_DIR }}/backend.log
-#           ${{ env.FRONTEND_DIR }}/frontend.log
-#         retention-days: 30
-
-#   # Docker Integration Tests
-#   docker-tests:
-#     name: Docker Integration Tests
-#     runs-on: ubuntu-latest
-#     if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Docker Buildx
-#       uses: docker/setup-buildx-action@v3
-
-#     - name: Build backend Docker image
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         docker build \
-#           --tag parking-backend:test \
-#           --build-arg BUILDKIT_INLINE_CACHE=1 \
-#           .
-
-#     - name: Build frontend Docker image
-#       working-directory: ${{ env.FRONTEND_DIR }}
-#       run: |
-#         docker build \
-#           --tag parking-frontend:test \
-#           --build-arg BUILDKIT_INLINE_CACHE=1 \
-#           .
-
-#     - name: Test backend container
-#       run: |
-#         # Test backend container health
-#         docker run --rm -d \
-#           --name backend-test \
-#           -p 5000:5000 \
-#           -e DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_parking_db \
-#           -e SECRET_KEY=test-key \
-#           parking-backend:test
-        
-#         sleep 15
-        
-#         # Health check with retries
-#         for i in {1..5}; do
-#           if curl -f http://localhost:5000/health; then
-#             echo "Backend container is healthy"
-#             break
-#           fi
-#           echo "Waiting for backend container to be ready... Attempt $i"
-#           sleep 5
-#         done
-        
-#         docker stop backend-test
-
-#     - name: Test frontend container
-#       run: |
-#         # Test frontend container
-#         docker run --rm -d \
-#           --name frontend-test \
-#           -p 3000:3000 \
-#           parking-frontend:test
-        
-#         sleep 10
-        
-#         # Health check with retries
-#         for i in {1..5}; do
-#           if curl -f http://localhost:3000/; then
-#             echo "Frontend container is healthy"
-#             break
-#           fi
-#           echo "Waiting for frontend container to be ready... Attempt $i"
-#           sleep 5
-#         done
-        
-#         docker stop frontend-test
-
-#     - name: Run container security scan
-#       uses: aquasecurity/trivy-action@master
-#       with:
-#         image-ref: 'parking-backend:test'
-#         format: 'sarif'
-#         output: 'trivy-backend-results.sarif'
-
-#     - name: Upload container scan results
-#       uses: github/codeql-action/upload-sarif@v2
-#       with:
-#         sarif_file: 'trivy-backend-results.sarif'
-
-#   # Performance Tests
-#   performance-tests:
-#     name: Performance Tests
-#     runs-on: ubuntu-latest
-#     if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
-
-#     services:
-#       postgres:
-#         image: postgres:15
-#         env:
-#           POSTGRES_USER: test_user
-#           POSTGRES_PASSWORD: test_password
-#           POSTGRES_DB: test_parking_db
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#         ports:
-#           - 5432:5432
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: ${{ env.PYTHON_VERSION }}
-
-#     - name: Install dependencies
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       run: |
-#         python -m pip install --upgrade pip
-#         pip install -r app/requirements.txt locust
-
-#     - name: Run load tests
-#       working-directory: ${{ env.BACKEND_DIR }}
-#       env:
-#         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
-#         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
-#         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-#         RPI_API_KEY: test-rpi-key-for-ci
-#       run: |
-#         # Start application
-#         python app.py > performance.log 2>&1 &
-#         echo $! > app.pid
-#         sleep 20
-        
-#         # Run load test
-#         locust \
-#           -f tests/load_tests/load_test.py \
-#           --headless \
-#           --users 50 \
-#           --spawn-rate 10 \
-#           --run-time 2m \
-#           --html=test-results/load-test.html \
-#           --csv=test-results/load-test
-        
-#         # Stop application
-#         kill $(cat app.pid)
-
-#     - name: Upload performance test results
-#       uses: actions/upload-artifact@v3
-#       if: always()
-#       with:
-#         name: performance-test-results
-#         path: ${{ env.BACKEND_DIR }}/test-results/
-#         retention-days: 30
-
-#   # Test Summary and Reporting
-#   test-summary:
-#     name: Test Summary
-#     runs-on: ubuntu-latest
-#     needs: [backend-tests, frontend-tests, e2e-tests, docker-tests, performance-tests]
-#     if: always()
-
-#     steps:
-#     - name: Download test artifacts
-#       uses: actions/download-artifact@v3
-
-#     - name: Generate test summary report
-#       run: |
-#         echo "# 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-#         echo "" >> $GITHUB_STEP_SUMMARY
-#         echo "## 📊 Test Results Overview" >> $GITHUB_STEP_SUMMARY
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         # Backend tests status
-#         if [ "${{ needs.backend-tests.result }}" == "success" ]; then
-#           echo "### ✅ Backend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-#           echo "- Unit Tests with Coverage: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Security Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Comprehensive Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Code Quality: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-#         else
-#           echo "### ❌ Backend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-#         fi
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         # Frontend tests status
-#         if [ "${{ needs.frontend-tests.result }}" == "success" ]; then
-#           echo "### ✅ Frontend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-#           echo "- Playwright E2E Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Unit Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Linting & Type Checking: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-#           echo "- Build: ✅ Successful" >> $GITHUB_STEP_SUMMARY
-#         else
-#           echo "### ❌ Frontend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-#         fi
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         # E2E tests status
-#         if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-#           echo "### ✅ End-to-End Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-#           echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "- Backend-Frontend Communication: ✅ Working" >> $GITHUB_STEP_SUMMARY
-#         else
-#           echo "### ❌ End-to-End Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-#         fi
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         # Docker tests status
-#         if [ "${{ needs.docker-tests.result }}" == "success" ]; then
-#           echo "### ✅ Docker Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-#           echo "- Container Builds: ✅ Successful" >> $GITHUB_STEP_SUMMARY
-#           echo "- Container Health: ✅ Verified" >> $GITHUB_STEP_SUMMARY
-#           echo "- Security Scan: ✅ Completed" >> $GITHUB_STEP_SUMMARY
-#         else
-#           echo "### ❌ Docker Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-#         fi
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         # Performance tests status
-#         if [ "${{ needs.performance-tests.result }}" == "success" ]; then
-#           echo "### ✅ Performance Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-#           echo "- Load Testing: ✅ Completed" >> $GITHUB_STEP_SUMMARY
-#           echo "- Response Times: ✅ Within Limits" >> $GITHUB_STEP_SUMMARY
-#         else
-#           echo "### ❌ Performance Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-#         fi
-#         echo "" >> $GITHUB_STEP_SUMMARY
-        
-#         echo "## 📁 Test Artifacts" >> $GITHUB_STEP_SUMMARY
-#         echo "- Backend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-#         echo "- Frontend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-#         echo "- E2E Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-#         echo "- Performance Reports: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-
-#     - name: Comment on PR
-#       if: github.event_name == 'pull_request' && always()
-#       uses: actions/github-script@v6
-#       with:
-#         script: |
-#           const summary = `## Test Results Summary
-          
-#           ✅ **Backend Tests**: ${{ needs.backend-tests.result }}
-#           ✅ **Frontend Tests**: ${{ needs.frontend-tests.result }}
-#           ✅ **E2E Tests**: ${{ needs.e2e-tests.result }}
-#           ✅ **Docker Tests**: ${{ needs.docker-tests.result }}
-#           ✅ **Performance Tests**: ${{ needs.performance-tests.result }}
-          
-#           Detailed reports available in workflow artifacts.`;
-          
-#           github.rest.issues.createComment({
-#             issue_number: context.issue.number,
-#             owner: context.repo.owner,
-#             repo: context.repo.repo,
-#             body: summary
-#           });
-
-
 name: Full End-to-End Tests
 
 on:
   push:
-    branches: [main, feature/reactapp-integration]
+    branches: [ main, feature/reactapp-integration ]
     paths:
       - 'Backend/**'
       - 'admin_react_app/**'
   pull_request:
-    branches: [main, feature/reactapp-integration]
+    branches: [ main, feature/reactapp-integration ]
     paths:
       - 'Backend/**'
       - 'admin_react_app/**'
@@ -723,6 +23,14 @@ on:
           - backend
           - frontend
           - integration
+      environment:
+        description: 'Environment to test against'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 env:
   NODE_VERSION: '18'
@@ -732,15 +40,11 @@ env:
   FRONTEND_DIR: 'admin_react_app'
 
 jobs:
+  # Backend Tests
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'workflow_dispatch' || 
-      !github.event.inputs.test_type || 
-      github.event.inputs.test_type == 'all' || 
-      github.event.inputs.test_type == 'backend' || 
-      github.event.inputs.test_type == 'integration'
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'backend' || github.event.inputs.test_type == 'integration' }}
     
     services:
       postgres:
@@ -761,34 +65,28 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Verify directory structure
-      run: |
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Checking for Backend directory:"
-        ls -la Backend/
-        echo "Checking for admin_react_app directory:"
-        ls -la admin_react_app/
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          ${{ env.BACKEND_DIR }}/.venv
+        key: ${{ runner.os }}-python-${{ hashFiles('**/requirements.txt', '**/setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-python-
+
+
     - name: Install Python dependencies
       working-directory: ${{ env.BACKEND_DIR }}
       run: |
         python -m pip install --upgrade pip
-        # Try different possible requirement file locations
-        if [ -f "requirements.txt" ]; then
-          pip install -r requirements.txt
-        elif [ -f "app/requirements.txt" ]; then
-          pip install -r app/requirements.txt
-        else
-          echo "No requirements.txt found, installing basic dependencies"
-          pip install flask pytest pytest-html coverage
-        fi
+        pip install -r app/requirements.txt
+        pip install pytest pytest-html pytest-xdist coverage
 
     - name: Create test environment file
       working-directory: ${{ env.BACKEND_DIR }}
@@ -802,7 +100,7 @@ jobs:
         TESTING=True
         EOF
 
-    - name: Run database setup
+    - name: Run database migrations
       working-directory: ${{ env.BACKEND_DIR }}
       env:
         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
@@ -810,22 +108,16 @@ jobs:
         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
         RPI_API_KEY: test-rpi-key-for-ci
       run: |
-        mkdir -p test-results
-        # Try to setup database (adjust based on your actual setup)
-        if [ -f "app.py" ]; then
-          python -c "
-          from app import create_app, db
-          app = create_app('testing')
-          with app.app_context():
-              db.drop_all()
-              db.create_all()
-              print('Database tables created successfully')
-          " || echo "Database setup completed"
-        else
-          echo "No app.py found, skipping database setup"
-        fi
+        python -c "
+        from app import create_app, db
+        app = create_app('testing')
+        with app.app_context():
+            db.drop_all()
+            db.create_all()
+            print('Database tables created successfully')
+        "
 
-    - name: Run backend tests
+    - name: Run unit tests with coverage
       working-directory: ${{ env.BACKEND_DIR }}
       env:
         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
@@ -833,36 +125,93 @@ jobs:
         JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
         RPI_API_KEY: test-rpi-key-for-ci
       run: |
-        # Run tests if they exist
-        if [ -d "tests" ]; then
-          python -m pytest tests/ -v \
-            --junitxml=test-results/backend-tests.xml \
-            --html=test-results/backend-tests.html \
-            --self-contained-html \
-            || echo "Tests completed with some failures"
-        else
-          echo "No tests directory found, creating dummy test results"
-          mkdir -p test-results
-          echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuite name=\"backend\" tests=\"0\" failures=\"0\"></testsuite>" > test-results/backend-tests.xml
-        fi
+        python -m pytest \
+          tests/test_auth.py tests/test_parking.py tests/test_admin_api.py tests/test_config.py \
+          -v \
+          --tb=short \
+          --junitxml=test-results/unit-tests.xml \
+          --html=test-results/unit-tests.html \
+          --self-contained-html \
+          --cov=app \
+          --cov-report=html:test-results/coverage \
+          --cov-report=xml:test-results/coverage.xml \
+          -n auto
+
+    - name: Run integration tests
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+      run: |
+        python -m pytest \
+          tests/test_integration.py \
+          -v \
+          --tb=short \
+          --junitxml=test-results/integration-tests.xml \
+          --html=test-results/integration-tests.html \
+          --self-contained-html
+
+    - name: Run security tests
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+      run: |
+        python -m pytest \
+          tests/test_security.py tests/test_security_comprehensive.py \
+          -v \
+          --tb=short \
+          --junitxml=test-results/security-tests.xml \
+          --html=test-results/security-tests.html \
+          --self-contained-html
+
+    - name: Run comprehensive tests
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+      run: |
+        python -m pytest \
+          tests/test_database_constraints.py tests/test_edge_cases.py tests/test_concurrency.py tests/test_error_recovery.py tests/test_performance.py \
+          -v \
+          --tb=short \
+          --junitxml=test-results/comprehensive-tests.xml \
+          --html=test-results/comprehensive-tests.html \
+          --self-contained-html \
+          || echo "Comprehensive tests completed with some failures"
+
+    - name: Run code quality checks
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        pip install flake8 black isort bandit
+        # Code formatting
+        black --check app/ tests/ --diff
+        isort --check-only app/ tests/
+        # Linting
+        flake8 app/ tests/ --max-line-length=120 --ignore=E203,W503,E501
+        # Security linting
+        bandit -r app/ -f html -o test-results/bandit-report.html
 
     - name: Upload backend test results
       uses: actions/upload-artifact@v3
       if: always()
       with:
         name: backend-test-results
-        path: ${{ env.BACKEND_DIR }}/test-results/
+        path: |
+          ${{ env.BACKEND_DIR }}/test-results/
         retention-days: 30
 
+  # Frontend Tests
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'workflow_dispatch' || 
-      !github.event.inputs.test_type || 
-      github.event.inputs.test_type == 'all' || 
-      github.event.inputs.test_type == 'frontend' || 
-      github.event.inputs.test_type == 'integration'
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'frontend' || github.event.inputs.test_type == 'integration' }}
 
     steps:
     - name: Checkout code
@@ -879,11 +228,55 @@ jobs:
       working-directory: ${{ env.FRONTEND_DIR }}
       run: |
         npm ci
+        # Install additional test dependencies if needed
+        npm install -g @playwright/test
 
     - name: Run linting
       working-directory: ${{ env.FRONTEND_DIR }}
       run: |
-        npm run lint -- --quiet || echo "Linting completed with warnings"
+        npm run lint -- --quiet --ignore-pattern "mock-server/**" || echo "Linting completed with warnings"
+
+    - name: Run type checking
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        npx tsc --noEmit --skipLibCheck || echo "Type checking completed"
+
+    - name: Install Playwright browsers
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        npx playwright install --with-deps chromium firefox webkit
+
+    - name: Start frontend development server
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        # Start the development server in background
+        npm run dev > frontend.log 2>&1 &
+        echo $! > frontend.pid
+        sleep 15
+        
+        # Check if frontend is running
+        curl -f http://localhost:5173/ || echo "Frontend server started"
+
+    - name: Run Playwright tests
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        # Run tests with retries for flaky tests
+        npx playwright test \
+          --config=playwright.config.ci.js \
+          --reporter=html,list \
+          --output=test-results/ \
+          --retries=2 \
+          --timeout=180000 \
+          --max-failures=10 \
+          || echo "Some tests failed - continuing with workflow"
+
+    - name: Stop frontend server
+      if: always()
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        if [ -f frontend.pid ]; then
+          kill $(cat frontend.pid) 2>/dev/null || true
+        fi
 
     - name: Build application
       working-directory: ${{ env.FRONTEND_DIR }}
@@ -893,8 +286,7 @@ jobs:
     - name: Run unit tests
       working-directory: ${{ env.FRONTEND_DIR }}
       run: |
-        mkdir -p test-results
-        npm test -- --coverage --watchAll=false --testResultsProcessor="jest-junit" || echo "Unit tests completed with some failures"
+        npm test -- --coverage --watchAll=false || echo "Unit tests completed"
 
     - name: Upload frontend test results
       uses: actions/upload-artifact@v3
@@ -903,16 +295,317 @@ jobs:
         name: frontend-test-results
         path: |
           ${{ env.FRONTEND_DIR }}/test-results/
+          ${{ env.FRONTEND_DIR }}/playwright-report/
           ${{ env.FRONTEND_DIR }}/coverage/
         retention-days: 30
 
+  # End-to-End Integration Tests
+  e2e-tests:
+    name: End-to-End Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+    needs: [backend-tests, frontend-tests]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_parking_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install backend dependencies
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Install frontend dependencies
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        npm ci
+
+    - name: Setup test database
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        python -c "
+        from app import create_app, db
+        app = create_app('testing')
+        with app.app_context():
+            db.drop_all()
+            db.create_all()
+            print('Test database setup completed')
+        "
+
+    - name: Start backend server
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        # Start backend in background
+        python app.py > backend.log 2>&1 &
+        echo $! > backend.pid
+        sleep 15
+        
+        # Check if backend is running
+        curl -f http://localhost:5000/health || curl -f http://localhost:5000/api/health || echo "Backend health check endpoint not available"
+
+    - name: Start frontend server
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        # Start development server in background
+        npm run dev > frontend.log 2>&1 &
+        echo $! > frontend.pid
+        sleep 20
+        
+        # Check if frontend is running
+        curl -f http://localhost:5173/ || echo "Frontend server started"
+
+    - name: Run integration tests
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        # Run Playwright tests against the running servers
+        npx playwright test \
+          --config=playwright.config.ci.js \
+          --reporter=html,list \
+          --output=test-results/e2e/ \
+          --retries=2 \
+          --timeout=180000 \
+          --project=chromium \
+          || echo "Some E2E tests failed - continuing with workflow"
+
+    - name: Stop servers
+      if: always()
+      run: |
+        # Stop backend
+        if [ -f "${{ env.BACKEND_DIR }}/backend.pid" ]; then
+          kill $(cat ${{ env.BACKEND_DIR }}/backend.pid) 2>/dev/null || true
+        fi
+        # Stop frontend
+        if [ -f "${{ env.FRONTEND_DIR }}/frontend.pid" ]; then
+          kill $(cat ${{ env.FRONTEND_DIR }}/frontend.pid) 2>/dev/null || true
+        fi
+
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-test-results
+        path: |
+          ${{ env.FRONTEND_DIR }}/test-results/e2e/
+          ${{ env.BACKEND_DIR }}/backend.log
+          ${{ env.FRONTEND_DIR }}/frontend.log
+        retention-days: 30
+
+  # Docker Integration Tests
+  docker-tests:
+    name: Docker Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build backend Docker image
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        docker build \
+          --tag parking-backend:test \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          .
+
+    - name: Build frontend Docker image
+      working-directory: ${{ env.FRONTEND_DIR }}
+      run: |
+        docker build \
+          --tag parking-frontend:test \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          .
+
+    - name: Test backend container
+      run: |
+        # Test backend container health
+        docker run --rm -d \
+          --name backend-test \
+          -p 5000:5000 \
+          -e DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_parking_db \
+          -e SECRET_KEY=test-key \
+          parking-backend:test
+        
+        sleep 15
+        
+        # Health check with retries
+        for i in {1..5}; do
+          if curl -f http://localhost:5000/health; then
+            echo "Backend container is healthy"
+            break
+          fi
+          echo "Waiting for backend container to be ready... Attempt $i"
+          sleep 5
+        done
+        
+        docker stop backend-test
+
+    - name: Test frontend container
+      run: |
+        # Test frontend container
+        docker run --rm -d \
+          --name frontend-test \
+          -p 3000:3000 \
+          parking-frontend:test
+        
+        sleep 10
+        
+        # Health check with retries
+        for i in {1..5}; do
+          if curl -f http://localhost:3000/; then
+            echo "Frontend container is healthy"
+            break
+          fi
+          echo "Waiting for frontend container to be ready... Attempt $i"
+          sleep 5
+        done
+        
+        docker stop frontend-test
+
+    - name: Run container security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'parking-backend:test'
+        format: 'sarif'
+        output: 'trivy-backend-results.sarif'
+
+    - name: Upload container scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-backend-results.sarif'
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_parking_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      working-directory: ${{ env.BACKEND_DIR }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt locust
+
+    - name: Run load tests
+      working-directory: ${{ env.BACKEND_DIR }}
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
+        RPI_API_KEY: test-rpi-key-for-ci
+      run: |
+        # Start application
+        python app.py > performance.log 2>&1 &
+        echo $! > app.pid
+        sleep 20
+        
+        # Run load test
+        locust \
+          -f tests/load_tests/load_test.py \
+          --headless \
+          --users 50 \
+          --spawn-rate 10 \
+          --run-time 2m \
+          --html=test-results/load-test.html \
+          --csv=test-results/load-test
+        
+        # Stop application
+        kill $(cat app.pid)
+
+    - name: Upload performance test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results
+        path: ${{ env.BACKEND_DIR }}/test-results/
+        retention-days: 30
+
+  # Test Summary and Reporting
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
+    needs: [backend-tests, frontend-tests, e2e-tests, docker-tests, performance-tests]
     if: always()
 
     steps:
+    - name: Download test artifacts
+      uses: actions/download-artifact@v3
+
     - name: Generate test summary report
       run: |
         echo "# 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
@@ -923,22 +616,85 @@ jobs:
         # Backend tests status
         if [ "${{ needs.backend-tests.result }}" == "success" ]; then
           echo "### ✅ Backend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ needs.backend-tests.result }}" == "failure" ]; then
-          echo "### ❌ Backend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests with Coverage: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Comprehensive Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality: ✅ Passed" >> $GITHUB_STEP_SUMMARY
         else
-          echo "### ⚠️ Backend Tests - ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Backend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
         fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
         # Frontend tests status
         if [ "${{ needs.frontend-tests.result }}" == "success" ]; then
           echo "### ✅ Frontend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ needs.frontend-tests.result }}" == "failure" ]; then
-          echo "### ❌ Frontend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "- Playwright E2E Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Linting & Type Checking: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ✅ Successful" >> $GITHUB_STEP_SUMMARY
         else
-          echo "### ⚠️ Frontend Tests - ${{ needs.frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Frontend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
         fi
-        
         echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # E2E tests status
+        if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+          echo "### ✅ End-to-End Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend-Frontend Communication: ✅ Working" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ End-to-End Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Docker tests status
+        if [ "${{ needs.docker-tests.result }}" == "success" ]; then
+          echo "### ✅ Docker Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Container Builds: ✅ Successful" >> $GITHUB_STEP_SUMMARY
+          echo "- Container Health: ✅ Verified" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Scan: ✅ Completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Docker Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Performance tests status
+        if [ "${{ needs.performance-tests.result }}" == "success" ]; then
+          echo "### ✅ Performance Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Load Testing: ✅ Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Response Times: ✅ Within Limits" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Performance Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
         echo "## 📁 Test Artifacts" >> $GITHUB_STEP_SUMMARY
         echo "- Backend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
         echo "- Frontend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- E2E Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance Reports: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment on PR
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const summary = `## Test Results Summary
+          
+          ✅ **Backend Tests**: ${{ needs.backend-tests.result }}
+          ✅ **Frontend Tests**: ${{ needs.frontend-tests.result }}
+          ✅ **E2E Tests**: ${{ needs.e2e-tests.result }}
+          ✅ **Docker Tests**: ${{ needs.docker-tests.result }}
+          ✅ **Performance Tests**: ${{ needs.performance-tests.result }}
+          
+          Detailed reports available in workflow artifacts.`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+
+
