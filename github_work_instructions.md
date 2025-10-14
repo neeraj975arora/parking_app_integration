@@ -127,6 +127,7 @@ If you are not a direct collaborator (i.e., you do not have push access), you wo
    ```bash
    git checkout -b feature/cross-project-feature   # Create and switch to a new branch for your cross-project feature
    eg. git checkout -b feature/reactapp-integration
+       git checkout -b feature/backend-failure-handling
     ```
 
 5. **Make Changes in Both Relevant Folders**
