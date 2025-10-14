@@ -48,7 +48,7 @@ jobs:
     
     services:
       postgres:
-       image: postgres:${{ vars.POSTGRES_VERSION }
+        image: postgres:15
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
@@ -79,6 +79,7 @@ jobs:
         key: ${{ runner.os }}-python-${{ hashFiles('**/requirements.txt', '**/setup.py') }}
         restore-keys: |
           ${{ runner.os }}-python-
+
 
     - name: Install Python dependencies
       working-directory: ${{ env.BACKEND_DIR }}
@@ -307,7 +308,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:${{ env.POSTGRES_VERSION }}
+        image: postgres:15
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
@@ -532,7 +533,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:${{ env.POSTGRES_VERSION }}
+        image: postgres:15
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
