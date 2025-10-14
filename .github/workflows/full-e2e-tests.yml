@@ -424,7 +424,7 @@ jobs:
         fi
 
     - name: Upload E2E test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: e2e-test-results
@@ -591,106 +591,106 @@ jobs:
         path: ${{ env.BACKEND_DIR }}/test-results/
         retention-days: 30
 
-  # # Test Summary and Reporting
-  # test-summary:
-  #   name: Test Summary
-  #   runs-on: ubuntu-latest
-  #   needs: [backend-tests, frontend-tests, e2e-tests, docker-tests, performance-tests]
-  #   if: always()
+  # Test Summary and Reporting
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests, docker-tests, performance-tests]
+    if: always()
 
-  #   steps:
-  #   - name: Download test artifacts
-  #     uses: actions/download-artifact@v3
+    steps:
+    - name: Download test artifacts
+      uses: actions/download-artifact@v4
 
-  #   - name: Generate test summary report
-  #     run: |
-  #       echo "# 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-  #       echo "" >> $GITHUB_STEP_SUMMARY
-  #       echo "## 📊 Test Results Overview" >> $GITHUB_STEP_SUMMARY
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+    - name: Generate test summary report
+      run: |
+        echo "# 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Test Results Overview" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       # Backend tests status
-  #       if [ "${{ needs.backend-tests.result }}" == "success" ]; then
-  #         echo "### ✅ Backend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Unit Tests with Coverage: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Security Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Comprehensive Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Code Quality: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-  #       else
-  #         echo "### ❌ Backend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-  #       fi
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+        # Backend tests status
+        if [ "${{ needs.backend-tests.result }}" == "success" ]; then
+          echo "### ✅ Backend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests with Coverage: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Comprehensive Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Backend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       # Frontend tests status
-  #       if [ "${{ needs.frontend-tests.result }}" == "success" ]; then
-  #         echo "### ✅ Frontend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Playwright E2E Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Unit Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Linting & Type Checking: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Build: ✅ Successful" >> $GITHUB_STEP_SUMMARY
-  #       else
-  #         echo "### ❌ Frontend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-  #       fi
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+        # Frontend tests status
+        if [ "${{ needs.frontend-tests.result }}" == "success" ]; then
+          echo "### ✅ Frontend Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Playwright E2E Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Linting & Type Checking: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ✅ Successful" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Frontend Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       # E2E tests status
-  #       if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-  #         echo "### ✅ End-to-End Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Backend-Frontend Communication: ✅ Working" >> $GITHUB_STEP_SUMMARY
-  #       else
-  #         echo "### ❌ End-to-End Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-  #       fi
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+        # E2E tests status
+        if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+          echo "### ✅ End-to-End Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend-Frontend Communication: ✅ Working" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ End-to-End Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       # Docker tests status
-  #       if [ "${{ needs.docker-tests.result }}" == "success" ]; then
-  #         echo "### ✅ Docker Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Container Builds: ✅ Successful" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Container Health: ✅ Verified" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Security Scan: ✅ Completed" >> $GITHUB_STEP_SUMMARY
-  #       else
-  #         echo "### ❌ Docker Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-  #       fi
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+        # Docker tests status
+        if [ "${{ needs.docker-tests.result }}" == "success" ]; then
+          echo "### ✅ Docker Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Container Builds: ✅ Successful" >> $GITHUB_STEP_SUMMARY
+          echo "- Container Health: ✅ Verified" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Scan: ✅ Completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Docker Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       # Performance tests status
-  #       if [ "${{ needs.performance-tests.result }}" == "success" ]; then
-  #         echo "### ✅ Performance Tests - PASSED" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Load Testing: ✅ Completed" >> $GITHUB_STEP_SUMMARY
-  #         echo "- Response Times: ✅ Within Limits" >> $GITHUB_STEP_SUMMARY
-  #       else
-  #         echo "### ❌ Performance Tests - FAILED" >> $GITHUB_STEP_SUMMARY
-  #       fi
-  #       echo "" >> $GITHUB_STEP_SUMMARY
+        # Performance tests status
+        if [ "${{ needs.performance-tests.result }}" == "success" ]; then
+          echo "### ✅ Performance Tests - PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Load Testing: ✅ Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Response Times: ✅ Within Limits" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Performance Tests - FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
         
-  #       echo "## 📁 Test Artifacts" >> $GITHUB_STEP_SUMMARY
-  #       echo "- Backend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-  #       echo "- Frontend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-  #       echo "- E2E Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
-  #       echo "- Performance Reports: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "## 📁 Test Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Backend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Frontend Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- E2E Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance Reports: Available in artifacts" >> $GITHUB_STEP_SUMMARY
 
-  #   - name: Comment on PR
-  #     if: github.event_name == 'pull_request' && always()
-  #     uses: actions/github-script@v6
-  #     with:
-  #       script: |
-  #         const summary = `## Test Results Summary
+    - name: Comment on PR
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const summary = `## Test Results Summary
           
-  #         ✅ **Backend Tests**: ${{ needs.backend-tests.result }}
-  #         ✅ **Frontend Tests**: ${{ needs.frontend-tests.result }}
-  #         ✅ **E2E Tests**: ${{ needs.e2e-tests.result }}
-  #         ✅ **Docker Tests**: ${{ needs.docker-tests.result }}
-  #         ✅ **Performance Tests**: ${{ needs.performance-tests.result }}
+          ✅ **Backend Tests**: ${{ needs.backend-tests.result }}
+          ✅ **Frontend Tests**: ${{ needs.frontend-tests.result }}
+          ✅ **E2E Tests**: ${{ needs.e2e-tests.result }}
+          ✅ **Docker Tests**: ${{ needs.docker-tests.result }}
+          ✅ **Performance Tests**: ${{ needs.performance-tests.result }}
           
-  #         Detailed reports available in workflow artifacts.`;
+          Detailed reports available in workflow artifacts.`;
           
-  #         github.rest.issues.createComment({
-  #           issue_number: context.issue.number,
-  #           owner: context.repo.owner,
-  #           repo: context.repo.repo,
-  #           body: summary
-  #         });
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
 
 
