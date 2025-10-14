@@ -44,7 +44,7 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'backend' || github.event.inputs.test_type == 'integration' }}
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'backend' || github.event.inputs.test_type == 'integration' }}
     
     services:
       postgres:
@@ -211,7 +211,7 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'frontend' || github.event.inputs.test_type == 'integration' }}
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'frontend' || github.event.inputs.test_type == 'integration' }}
 
     steps:
     - name: Checkout code
@@ -303,7 +303,7 @@ jobs:
   e2e-tests:
     name: End-to-End Integration Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
     needs: [backend-tests, frontend-tests]
 
     services:
@@ -442,7 +442,7 @@ jobs:
   docker-tests:
     name: Docker Integration Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
 
     steps:
     - name: Checkout code
@@ -529,7 +529,7 @@ jobs:
   performance-tests:
     name: Performance Tests
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
+    if: ${{ !github.event.inputs.test_type || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' }}
 
     services:
       postgres:
