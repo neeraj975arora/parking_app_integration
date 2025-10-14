@@ -31,7 +31,6 @@ docker-compose ps
 docker volume ls
 ```
 
-
 ### If you want to remove all the containerthen you can use this command
 
 ```sh
