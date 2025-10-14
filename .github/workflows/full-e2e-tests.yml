@@ -2,17 +2,15 @@ name: Full End-to-End Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, feature/reactapp-integration ]
     paths:
       - 'parking_app_integration/Backend/**'
       - 'parking_app_integration/admin_react_app/**'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, feature/reactapp-integration ]
     paths:
       - 'parking_app_integration/Backend/**'
       - 'parking_app_integration/admin_react_app/**'
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM
   workflow_dispatch:
     inputs:
       test_type:
@@ -50,7 +48,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:${{ env.POSTGRES_VERSION }}
+       image: postgres:${{ vars.POSTGRES_VERSION }
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
