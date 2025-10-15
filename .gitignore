@@ -143,7 +143,7 @@ public
 /workspace.xml
 
 # Package lock files (choose one based on your package manager)
-package-lock.json
+# package-lock.json  # Keep this committed for reproducible npm builds in CI
 yarn.lock
 
 # Build directories
