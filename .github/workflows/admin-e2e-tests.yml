@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: admin_react_app/package-lock.json
+          cache-dependency-path: admin_react_app/package.json
 
       # ===========================
       # Step 3: Setup Python Environment
