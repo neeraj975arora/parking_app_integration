@@ -47,7 +47,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip' # Cache pip dependencies
+          # Note: No pip cache since we don't install Python packages in this workflow
 
       # ===========================
       # Step 4: Docker Compose Cleanup (Pre)
@@ -176,7 +176,7 @@ jobs:
       - name: Run Playwright E2E tests
         env:
           CI: true
-        run: npm test
+        run: npx playwright test --config=playwright.config.ci.js
         working-directory: ./admin_react_app
 
       # ===========================
@@ -188,6 +188,7 @@ jobs:
           name: admin-e2e-test-report-html
           path: admin_react_app/test-results/playwright-report
           retention-days: 30
+          if-no-files-found: warn
         if: always() # Upload reports even if tests fail
 
       # ===========================
@@ -201,6 +202,7 @@ jobs:
             admin_react_app/test-results/results.json
             admin_react_app/test-results/results.xml
           retention-days: 30
+          if-no-files-found: warn
         if: always()
 
       # ===========================
@@ -215,6 +217,7 @@ jobs:
             admin_react_app/test-results/**/*.webm
             admin_react_app/test-results/**/*.png
           retention-days: 30
+          if-no-files-found: ignore
         if: always()
 
       # ===========================

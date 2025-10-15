@@ -11,9 +11,9 @@ export default defineConfig({
     timeout: 30000, // 30 seconds for assertions in CI
   },
   reporter: [
-    ['html', { outputFolder: '../test-results/playwright-report' }],
-    ['json', { outputFile: '../test-results/results.json' }],
-    ['junit', { outputFile: '../test-results/results.xml' }],
+    ['html', { outputFolder: './test-results/playwright-report' }],
+    ['json', { outputFile: './test-results/results.json' }],
+    ['junit', { outputFile: './test-results/results.xml' }],
     ['list']
   ],
   use: {
