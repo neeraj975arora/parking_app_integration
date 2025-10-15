@@ -1,0 +1,243 @@
+name: Admin React App E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - feature/reactapp-integration
+  pull_request:
+    branches:
+      - main
+      - feature/reactapp-integration
+  workflow_dispatch: # Allows manual trigger of the workflow
+
+jobs:
+  admin-e2e-tests:
+    runs-on: ubuntu-latest # Standard runner for most GitHub Actions workflows
+    timeout-minutes: 30 # Prevent jobs from running indefinitely
+    env:
+      # Centralize environment variables for easier modification
+      NODE_VERSION: '20' # LTS version for Vite
+      PYTHON_VERSION: '3.12' # Python version (for consistency, may not be strictly needed)
+      BACKEND_URL: 'http://localhost'
+      FRONTEND_PORT: '5173'
+      TEST_REPORT_PATH: 'admin_react_app/test-results'
+
+    steps:
+      # ===========================
+      # Step 1: Checkout Repository
+      # ===========================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ===========================
+      # Step 2: Setup Node.js Environment
+      # ===========================
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: admin_react_app/package-lock.json
+
+      # ===========================
+      # Step 3: Setup Python Environment
+      # ===========================
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip' # Cache pip dependencies
+
+      # ===========================
+      # Step 4: Docker Compose Cleanup (Pre)
+      # ===========================
+      - name: Clean up Docker Compose (remove old containers and volumes)
+        run: docker compose down -v # Use `docker compose` (v2 syntax)
+        working-directory: ./Backend
+        if: always() # Run this step even if previous steps failed
+
+      # ===========================
+      # Step 5: Start Backend with Docker Compose
+      # ===========================
+      - name: Start backend with Docker Compose
+        run: docker compose up -d # Use `docker compose` (v2 syntax)
+        working-directory: ./Backend
+
+      # ===========================
+      # Step 6: Wait for Backend Health Check
+      # ===========================
+      - name: Wait for backend to be ready
+        run: |
+          # Loop with timeout for backend health check
+          for i in $(seq 1 30); do # 30 iterations * 5 seconds = 150s max
+            if curl -s http://localhost:5000/health || curl -s http://localhost/health; then
+              echo "Backend is up!"
+              exit 0
+            fi
+            echo "Waiting for backend ($i/30)..."
+            sleep 5
+          done
+          echo "Backend did not start in time after 150 seconds." # More descriptive error
+          exit 1
+        working-directory: ./Backend
+
+      # ===========================
+      # Step 7: Wait for Database to be Ready
+      # ===========================
+      - name: Wait for database to be ready
+        run: |
+          # Loop with timeout for database health check
+          for i in $(seq 1 20); do # 20 iterations * 3 seconds = 60s max
+            if docker compose exec -T db pg_isready -U parking_user -d parking_db; then
+              echo "Database is ready!"
+              exit 0
+            fi
+            echo "Waiting for database ($i/20)..."
+            sleep 3
+          done
+          echo "Database did not become ready in time after 60 seconds."
+          exit 1
+        working-directory: ./Backend
+
+      # ===========================
+      # Step 8: Initialize and Seed Database with SQL Scripts
+      # ===========================
+      - name: Copy init_db.sql to database container
+        run: docker cp init_db.sql backend-db-1:/init_db.sql
+        working-directory: ./Backend
+
+      - name: Initialize database schema
+        run: docker exec backend-db-1 psql -U parking_user -d parking_db -f /init_db.sql
+        working-directory: ./Backend
+
+      - name: Copy seed_data.sql to database container
+        run: docker cp seed_data.sql backend-db-1:/seed_data.sql
+        working-directory: ./Backend
+
+      - name: Populate database with seed data
+        run: docker exec backend-db-1 psql -U parking_user -d parking_db -f /seed_data.sql
+        working-directory: ./Backend
+
+      # ===========================
+      # Step 9: Verify Database Seeding
+      # ===========================
+      - name: Verify database seeding
+        run: |
+          echo "Checking users table..."
+          docker exec backend-db-1 psql -U parking_user -d parking_db -c "SELECT COUNT(*) FROM users;"
+          echo "Checking parking lots..."
+          docker exec backend-db-1 psql -U parking_user -d parking_db -c "SELECT COUNT(*) FROM parkinglots_details;"
+          echo "Database seeding verified successfully!"
+        working-directory: ./Backend
+
+      # ===========================
+      # Step 10: Install Frontend Dependencies
+      # ===========================
+      - name: Install frontend dependencies
+        run: npm ci # Clean install for CI - faster and more reliable
+        working-directory: ./admin_react_app
+
+      # ===========================
+      # Step 11: Install Playwright Browsers
+      # ===========================
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: ./admin_react_app
+
+      # ===========================
+      # Step 12: Start Frontend Dev Server in Background
+      # ===========================
+      - name: Start frontend dev server
+        run: |
+          npm run dev &
+          VITE_PID=$!
+          echo "VITE_PID=$VITE_PID" >> $GITHUB_ENV
+          echo "Started Vite dev server with PID: $VITE_PID"
+        working-directory: ./admin_react_app
+
+      - name: Wait for frontend to be ready
+        run: |
+          # Loop with timeout for frontend health check
+          for i in $(seq 1 30); do # 30 iterations * 2 seconds = 60s max
+            if curl -s http://localhost:5173 > /dev/null; then
+              echo "Frontend is up!"
+              exit 0
+            fi
+            echo "Waiting for frontend ($i/30)..."
+            sleep 2
+          done
+          echo "Frontend did not start in time after 60 seconds."
+          exit 1
+
+      # ===========================
+      # Step 13: Run Playwright Tests
+      # ===========================
+      - name: Run Playwright E2E tests
+        env:
+          CI: true
+        run: npm test
+        working-directory: ./admin_react_app
+
+      # ===========================
+      # Step 14: Upload Test Report (HTML)
+      # ===========================
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-e2e-test-report-html
+          path: admin_react_app/test-results/playwright-report
+          retention-days: 30
+        if: always() # Upload reports even if tests fail
+
+      # ===========================
+      # Step 15: Upload Test Results (JSON/XML)
+      # ===========================
+      - name: Upload test results (JSON/XML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-e2e-test-results
+          path: |
+            admin_react_app/test-results/results.json
+            admin_react_app/test-results/results.xml
+          retention-days: 30
+        if: always()
+
+      # ===========================
+      # Step 16: Upload Playwright Traces/Videos/Screenshots
+      # ===========================
+      - name: Upload Playwright traces and artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-e2e-playwright-artifacts
+          path: |
+            admin_react_app/test-results/**/*.zip
+            admin_react_app/test-results/**/*.webm
+            admin_react_app/test-results/**/*.png
+          retention-days: 30
+        if: always()
+
+      # ===========================
+      # Step 17: Upload Backend Logs
+      # ===========================
+      - name: Capture backend logs
+        run: docker compose logs app > backend-app.log
+        working-directory: ./Backend
+        if: always()
+
+      - name: Upload backend logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-logs
+          path: Backend/backend-app.log
+          retention-days: 30
+        if: always() # Upload logs even if tests pass (helpful for debugging)
+
+      # ===========================
+      # Step 18: Docker Compose Cleanup (Post)
+      # ===========================
+      - name: Clean up Docker Compose (remove containers and volumes)
+        run: docker compose down -v # Use `docker compose` (v2 syntax)
+        working-directory: ./Backend
+        if: always() # Run this step even if previous steps failed
+
