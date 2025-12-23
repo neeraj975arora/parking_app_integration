@@ -1,4 +1,4 @@
-# Complete Guide to Setup Car Parking Android App (Linux & Windows)
+# Complete Guide to Setup Car Parking Android App (Linux & Windows).
 
 ## Getting Started
 
