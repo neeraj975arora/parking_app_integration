@@ -1,3 +1,5 @@
+#This was initially intented as a combined workflow covering both react and android scenarios but for now it is decided to keep them seperate. In case in future there is requirement of combined workflow then this can be rewind.
+
 name: Full End-to-End Tests
 
 on:
