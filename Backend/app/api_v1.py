@@ -16,8 +16,12 @@ def require_api_key(f):
     def decorated_function(*args, **kwargs):
         logger.debug(f"API key authentication check for endpoint: {f.__name__}")
         api_key = request.headers.get('X-API-KEY')
-        if not api_key or api_key != current_app.config.get('RPI_API_KEY'):
+        expected_key = current_app.config.get('RPI_API_KEY')
+        logger.debug(f"Received API key: {api_key}")
+        logger.debug(f"Expected API key: {expected_key}")
+        if not api_key or api_key != expected_key:
             logger.warning(f"Unauthorized API key access attempt from IP: {request.remote_addr}")
+            logger.warning(f"API key mismatch - received: '{api_key}', expected: '{expected_key}'")
             return jsonify({"error": "Unauthorized"}), 401
         logger.info(f"API key authentication successful for endpoint: {f.__name__}")
         return f(*args, **kwargs)

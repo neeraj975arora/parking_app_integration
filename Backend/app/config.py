@@ -65,6 +65,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
     WTF_CSRF_ENABLED = False
+    RPI_API_KEY = os.environ.get('RPI_API_KEY') or 'super-secret-rpi-key'  # Ensure API key is available in tests
 
 # Dictionary to access config classes by name
 config_by_name = {
