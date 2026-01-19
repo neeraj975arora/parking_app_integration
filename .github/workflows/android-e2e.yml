@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+      - feature-Android/Session-Handling-Final
   pull_request:
     branches:
       - main
       - master
+      - feature-Android/Session-Handling-Final
   workflow_dispatch:
 
 jobs:
