@@ -83,7 +83,7 @@ jobs:
           DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY=test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY=test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY=test-rpi-key-for-ci
+          RPI_API_KEY=super-secret-rpi-key
           FLASK_ENV=testing
           TESTING=True
           EOF
@@ -100,7 +100,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -c "
           from app import create_app, db
@@ -120,7 +120,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             tests/test_auth.py tests/test_parking.py tests/test_admin_api.py tests/test_config.py \
@@ -142,7 +142,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             tests/test_integration.py \
@@ -160,7 +160,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             tests/test_security.py tests/test_security_comprehensive.py \
@@ -178,7 +178,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             tests/test_performance.py \
@@ -197,7 +197,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             tests/test_database_constraints.py tests/test_edge_cases.py tests/test_concurrency.py tests/test_error_recovery.py \
@@ -217,7 +217,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_parking_db
           SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
           JWT_SECRET_KEY: test-jwt-secret-for-ci-${{ github.run_id }}
-          RPI_API_KEY: test-rpi-key-for-ci
+          RPI_API_KEY: super-secret-rpi-key
         run: |
           python -m pytest \
             --cov=app \
