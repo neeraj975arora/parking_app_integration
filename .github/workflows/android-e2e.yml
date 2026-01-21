@@ -128,25 +128,21 @@ jobs:
           api-level: ${{ env.API_LEVEL }}
           target: google_apis
           arch: x86_64
-          profile: Nexus 5
-          ram-size: 4096M
-          heap-size: 1024M
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -wipe-data -partition-size 8192 -gpu swiftshader_indirect -camera-back none -camera-front none -no-snapshot-save -qemu -m 4096
+          profile: Nexus 6
+          ram-size: 2048M
+          heap-size: 512M
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -camera-front none -gpu swiftshader_indirect -memory 2048 -partition-size 4096
           disable-animations: true
+          force-avd-creation: true
+          emulator-build: 7425822
           script: |
-            echo "Waiting for device..."
-            adb wait-for-device
+            echo "Emulator started, waiting for device..."
+            adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d '\r') ]]; do sleep 1; done; input keyevent 82'
             
-            echo "Waiting for system to be ready..."
-            adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+            echo "Device is ready, checking emulator status..."
+            adb devices -l
             
-            echo "Waiting for package manager..."
-            adb shell 'while ! pm list packages > /dev/null 2>&1; do sleep 1; done'
-            
-            echo "Additional wait for system stability..."
-            sleep 15
-            
-            echo "Device ready, granting permissions..."
+            echo "Granting permissions..."
             adb shell pm grant $APP_PACKAGE android.permission.CAMERA || true
             adb shell pm grant $APP_PACKAGE android.permission.ACCESS_FINE_LOCATION || true
             adb shell pm grant $APP_PACKAGE android.permission.ACCESS_COARSE_LOCATION || true
@@ -156,30 +152,16 @@ jobs:
             echo "Installing APK..."
             adb install -r Vision-Parking/app/build/outputs/apk/debug/app-debug.apk
             
-            echo "Clearing app data to ensure clean state..."
-            adb shell pm clear $APP_PACKAGE || echo "Could not clear app data"
-            
             echo "Verifying app installation..."
             adb shell pm list packages | grep $APP_PACKAGE
             
-            echo "Starting app to verify it launches..."
+            echo "Testing app launch..."
             adb shell am start -n $APP_PACKAGE/com.example.visionpark.activities.SplashScreenActivity
-            sleep 10
-            
-            echo "Checking if app is running..."
-            adb shell "ps | grep $APP_PACKAGE" || adb shell "ps -A | grep $APP_PACKAGE" || echo "App process not found"
-            
-            echo "Getting current activity..."
-            adb shell dumpsys activity activities | grep "mResumedActivity" || echo "Could not get current activity"
-            
-            echo "Stopping app before tests..."
+            sleep 5
             adb shell am force-stop $APP_PACKAGE
             
-            echo "Extra wait for emulator stability..."
-            sleep 30
-            
             echo "Running E2E tests..."
-            cd Vision-Parking && timeout 25m ./run_e2e.sh
+            cd Vision-Parking && timeout 20m ./run_e2e.sh
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
