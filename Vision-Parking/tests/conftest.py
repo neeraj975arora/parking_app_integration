@@ -23,8 +23,22 @@ def driver():
     options.set_capability('skipDeviceInitialization', False)
     options.set_capability('disableWindowAnimation', True)
     options.set_capability('skipLogcatCapture', True)
+    
+    # App launch settings to prevent ANR
+    options.set_capability('appWaitActivity', '*')  # Wait for any activity
+    options.set_capability('appWaitDuration', 30000)  # Wait up to 30 seconds
+    options.set_capability('androidDeviceReadyTimeout', 60)  # Device ready timeout
+    options.set_capability('androidInstallTimeout', 120000)  # Install timeout
+    
+    # Reset settings
     options.no_reset = False
+    options.full_reset = False  # Don't do full reset to avoid reinstalling
 
     driver = webdriver.Remote('http://127.0.0.1:4723/wd/hub', options=options)
+    
+    # Give the app extra time to start
+    import time
+    time.sleep(5)
+    
     yield driver
     driver.quit()

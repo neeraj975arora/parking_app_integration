@@ -24,6 +24,52 @@ def wait_for_element(driver, locator, timeout=10):
     except Exception as e:
         pytest.fail(str(e))
 
+def handle_anr_dialog(driver, timeout=5):
+    """Handle Android ANR (Application Not Responding) dialogs"""
+    anr_button_ids = [
+        'android:id/aerr_wait',  # Wait button
+        'android:id/button1',    # OK/Wait button
+    ]
+    anr_texts = ['Wait', 'OK']
+    end_time = time.time() + timeout
+
+    while time.time() < end_time:
+        # Check for ANR dialog title
+        try:
+            anr_title = driver.find_element(AppiumBy.ID, 'android:id/alertTitle')
+            if anr_title.is_displayed() and 'responding' in anr_title.text.lower():
+                print(f"ANR dialog detected: {anr_title.text}")
+                
+                # Try to click Wait button first
+                for btn_id in anr_button_ids:
+                    try:
+                        btn = driver.find_element(AppiumBy.ID, btn_id)
+                        if btn.is_displayed():
+                            print(f"Clicking ANR button: {btn.text}")
+                            btn.click()
+                            time.sleep(2)
+                            return True
+                    except:
+                        continue
+                        
+                # Try by text
+                for text in anr_texts:
+                    try:
+                        btn = driver.find_element(
+                            AppiumBy.ANDROID_UIAUTOMATOR,
+                            f'new UiSelector().textMatches("(?i){text}")'
+                        )
+                        if btn.is_displayed():
+                            print(f"Clicking ANR button by text: {btn.text}")
+                            btn.click()
+                            time.sleep(2)
+                            return True
+                    except:
+                        continue
+        except:
+            pass
+        time.sleep(0.5)
+    return False
 def handle_permission_dialog(driver, timeout=5):
     allow_button_ids = [
         'com.android.permissioncontroller:id/permission_allow_button',
