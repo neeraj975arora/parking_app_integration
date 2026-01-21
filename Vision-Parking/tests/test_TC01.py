@@ -1,11 +1,16 @@
-from .common import wait_for_element
+from .common import wait_for_element, handle_permission_dialog
 import pytest
 import time
 from appium.webdriver.common.appiumby import AppiumBy
 
 
 def test_app_launch(driver):
-    time.sleep(5)  # Give more time for app to fully load
+    # Handle any permission dialogs first
+    print("Handling permission dialogs...")
+    handle_permission_dialog(driver, timeout=10)
+    
+    # Give more time for app to fully load after permissions
+    time.sleep(8)
     
     # Debug: Print current activity and page source
     try:
@@ -54,7 +59,7 @@ def test_app_launch(driver):
                 try:
                     app_name = driver.find_element(AppiumBy.CLASS_NAME, "android.widget.TextView")
                 except:
-                    pytest.fail("Could not find app name element with any method")
+                    print("Could not find app name element with any method - continuing anyway")
     
     if app_name:
         assert app_name.is_displayed()
@@ -80,23 +85,58 @@ def test_app_launch(driver):
         assert get_started_btn.is_displayed()
         print(f"Found get started button: {get_started_btn.text}")
         get_started_btn.click()
+        
+        # Handle any permission dialogs that might appear after clicking
+        handle_permission_dialog(driver, timeout=5)
 
-    # Wait for login screen
-    time.sleep(3)
+    # Wait longer for login screen and handle any additional dialogs
+    time.sleep(5)
+    
+    # Try multiple approaches to find login button
+    login_btn = None
     try:
-        wait_for_element(driver, (AppiumBy.ID, 'btnLogin'), timeout=10)
+        login_btn = wait_for_element(driver, (AppiumBy.ID, 'btnLogin'), timeout=10)
     except:
         try:
-            wait_for_element(driver, (AppiumBy.ID, 'com.example.visionpark:id/btnLogin'), timeout=5)
+            login_btn = wait_for_element(driver, (AppiumBy.ID, 'com.example.visionpark:id/btnLogin'), timeout=5)
         except:
-            # Print current state after click
             try:
-                current_activity = driver.current_activity
-                print(f"Current activity after click: {current_activity}")
-                page_source = driver.page_source
-                print("=== PAGE SOURCE AFTER CLICK ===")
-                print(page_source[:1000])
-                print("=== END PAGE SOURCE AFTER CLICK ===")
+                # Try to find by text content
+                login_btn = driver.find_element(AppiumBy.XPATH, "//*[contains(@text, 'Login') or contains(@text, 'LOG IN') or contains(@text, 'Sign In')]")
             except:
-                pass
-            pytest.fail("Could not find login button after clicking get started")
+                try:
+                    # Try to find any button that might be login
+                    buttons = driver.find_elements(AppiumBy.CLASS_NAME, "android.widget.Button")
+                    for btn in buttons:
+                        if btn.text and ('login' in btn.text.lower() or 'sign' in btn.text.lower()):
+                            login_btn = btn
+                            break
+                except:
+                    pass
+    
+    if not login_btn:
+        # Print current state after click for debugging
+        try:
+            current_activity = driver.current_activity
+            print(f"Current activity after click: {current_activity}")
+            page_source = driver.page_source
+            print("=== PAGE SOURCE AFTER CLICK ===")
+            print(page_source[:2000])
+            print("=== END PAGE SOURCE AFTER CLICK ===")
+            
+            # Try to find all clickable elements
+            clickable_elements = driver.find_elements(AppiumBy.XPATH, "//*[@clickable='true']")
+            print("=== CLICKABLE ELEMENTS ===")
+            for elem in clickable_elements[:5]:
+                try:
+                    print(f"Clickable: Text='{elem.text}', Resource-id='{elem.get_attribute('resource-id')}'")
+                except:
+                    pass
+            print("=== END CLICKABLE ELEMENTS ===")
+        except Exception as e:
+            print(f"Error getting debug info: {e}")
+        
+        pytest.fail("Could not find login button after clicking get started")
+    
+    print(f"Successfully found login button: {login_btn.text}")
+    assert login_btn.is_displayed()

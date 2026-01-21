@@ -131,7 +131,7 @@ jobs:
           profile: Nexus 5
           ram-size: 4096M
           heap-size: 1024M
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -wipe-data -partition-size 8192 -gpu swiftshader_indirect -camera-back none -camera-front none
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 4096 -wipe-data -partition-size 8192 -gpu swiftshader_indirect -camera-back none -camera-front none -no-snapshot-save -qemu -m 4096
           disable-animations: true
           script: |
             echo "Waiting for device..."
@@ -142,6 +142,9 @@ jobs:
             
             echo "Waiting for package manager..."
             adb shell 'while ! pm list packages > /dev/null 2>&1; do sleep 1; done'
+            
+            echo "Additional wait for system stability..."
+            sleep 15
             
             echo "Device ready, granting permissions..."
             adb shell pm grant $APP_PACKAGE android.permission.CAMERA || true
@@ -161,7 +164,7 @@ jobs:
             
             echo "Starting app to verify it launches..."
             adb shell am start -n $APP_PACKAGE/com.example.visionpark.activities.SplashScreenActivity
-            sleep 5
+            sleep 10
             
             echo "Checking if app is running..."
             adb shell "ps | grep $APP_PACKAGE" || adb shell "ps -A | grep $APP_PACKAGE" || echo "App process not found"
@@ -171,6 +174,9 @@ jobs:
             
             echo "Stopping app before tests..."
             adb shell am force-stop $APP_PACKAGE
+            
+            echo "Extra wait for emulator stability..."
+            sleep 30
             
             echo "Running E2E tests..."
             cd Vision-Parking && timeout 25m ./run_e2e.sh
